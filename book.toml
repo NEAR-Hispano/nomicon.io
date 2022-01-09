@@ -10,8 +10,8 @@ build-dir = "docs"
 use-default-preprocessors = false
 
 [output.html]
-git-repository-url = "https://github.com/near/NEPs/tree/master/"
-edit-url-template = "https://github.com/near/NEPs/edit/master/{path}"
+git-repository-url = "https://github.com/NEAR-Hispano/nomicon.io/tree/master/"
+edit-url-template = "https://github.com/NEAR-Hispano/nomicon.io/edit/master/{path}"
 mathjax-support = true
 
 [output.wordcount]
