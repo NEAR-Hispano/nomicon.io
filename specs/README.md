@@ -1,16 +1,16 @@
 # The NEAR Protocol Specification
 
-Near Protocol is the scalable blockchain protocol.
+Near Protocol es el protocolo escalable de blockchain.
 
-For the overview of the NEAR Protocol, read the following documents in numerical order.
-1. [Terminology](Terminology.md)
-2. [Data structures](DataStructures/README.md)
-3. [Architecture](Architecture.md)
-4. [Chain specification](ChainSpec/README.md)
-5. [Runtime specification](RuntimeSpec/README.md)
-6. [Network specification](NetworkSpec/NetworkSpec.md)  
-7. [Economics](Economics/README.md)
+Para una mejor comprensión, lea los siguientes documentos en orden numérico.
+1. [Terminología](Terminology.md)
+2. [Estructuras de datos](DataStructures/README.md)
+3. [Arquitectura](Architecture.md)
+4. [Especificación de cadena](ChainSpec/README.md)
+5. [Especificación de tiempo de ejecución](RuntimeSpec/README.md)
+6. [Especificación de red](NetworkSpec/NetworkSpec.md)  
+7. [Economía](Economics/README.md)
 
-## Standards
+## Estándares
 
-Standards such as Fungible Token Standard can be found in [Standards](Standards/README.md) page.
+Los estándares como “Fungible Token Standard” (estándar del token fungible) pueden ser encontrados en la página de [Estándares](Standards/README.md) page.
