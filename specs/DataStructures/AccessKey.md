@@ -1,21 +1,20 @@
-# Access Keys
+# Llaves de acceso
 
-Access key provides an access for a particular account. Each access key belongs to some account and
-is identified by a unique (within the account) public key. Access keys are stored as `account_id,public_key` in a trie state. Account can have from [zero](#account-without-access-keys) to multiple access keys.
+Las llaves de acceso proveen acceso para una cuenta en particular. Cada llave de acceso pertenece a una cuenta y es identificada por una llave de acceso pública única (dentro de la misma cuenta). Las llaves de acceso se almacenan como `account_id,public_key` en un estado trie. Una cuenta puede tener desde [cero](#account-without-access-keys) hasta múltiples llaves de acceso.
 
 ```rust
 pub struct AccessKey {
-    /// The nonce for this access key.
-    /// NOTE: In some cases the access key needs to be recreated. If the new access key reuses the
-    /// same public key, the nonce of the new access key should be equal to the nonce of the old
-    /// access key. It's required to avoid replaying old transactions again.
+    /// El nonce para esta llave de acceso.
+    /// NOTA: en algunos casos la llave de acceso debe de ser creada nuevamente. Si la llave de acceso nueva rehúsa la
+    /// misma llave pública, el nonce de la nueva llave pública debería de ser igual al nonce de la llave de
+    /// acceso anterior. Es requerido para evitar recrear transacciones antiguas otra vez.
     pub nonce: Nonce,
-    /// Defines permissions for this access key.
+    /// Define los permisos para esta llave de acceso.
     pub permission: AccessKeyPermission,
 }
 ```
 
-There are 2 types of `AccessKeyPermission` in Near currently: `FullAccess` and `FunctionCall`. `FunctionCall` grants a permission to issue any action on account like [DeployContract](Transaction#DeployContract), [Transfer](Transaction#Transfer) tokens to other account, call functions [FunctionCall](Transaction#FunctionCall), [Stake](Transaction#Stake) and even delete account [DeleteAccountAction](Transaction#DeleteAccountAction). `FullAccess` also allow to manage access keys. `AccessKeyPermission::FunctionCall` limits to do only contract calls.
+Hay 2 tipos de `AccessKeyPermission` (permiso de llave de acceso) en Near actualmente: `FullAccess` (acceso completo) y `FunctionCall` (llamado de función). `FunctionCall` concede el permiso para realizar cualquier acción en una cuenta como [DeployContract](Transaction#DeployContract) (implementar contrato), [Transfer](Transaction#Transfer) (transferir) tokens a otra cuenta, llamado de funciones [FunctionCall](Transaction#FunctionCall), [Stake](Transaction#Stake) e incluso borrar la cuenta [DeleteAccountAction](Transaction#DeleteAccountAction) (acción de borrado de cuenta). `FullAccess` también permite manejar las llaves de acceso. `AccessKeyPermission::FunctionCall` limita a solo hacer llamadas contractuales.
 
 ```rust
 pub enum AccessKeyPermission {
@@ -26,28 +25,28 @@ pub enum AccessKeyPermission {
 
 ## AccessKeyPermission::FunctionCall
 
-Grants limited permission to make [FunctionCall](Transaction#FunctionCall) to a specified `receiver_id` and methods of a particular contract with a limit of allowed balance to spend.
+Concede permiso limitado para hacer llamadas a funciones [FunctionCall](Transaction#FunctionCall) a un `receiver_id` (id receptor) específico y a los métodos de un contrato en particular con un límite de balance permitido para gastar.
 
 ```rust
 pub struct FunctionCallPermission {
-    /// Allowance is a balance limit to use by this access key to pay for function call gas and
-    /// transaction fees. When this access key is used, both account balance and the allowance is
-    /// decreased by the same value.
-    /// `None` means unlimited allowance.
-    /// NOTE: To change or increase the allowance, the old access key needs to be deleted and a new
-    /// access key should be created.
+    /// Allowance es el balance permitido para esta llave de acceso para pagar por llamadas de función, gas y
+    /// cuotas de transacción. Cuando esta llave de acceso es usada, el balance de cuenta y el allowance se
+    /// decrementan por el mismo valor.
+    /// `None` significa allowance ilimitado.
+    /// NOTA: Para cambiar o incrementar el allowance, la llave de acceso anterior necesita ser borrada y una llave de acceso
+    /// nueva debe de ser creada.
     pub allowance: Option<Balance>,
 
-    /// The access key only allows transactions with the given receiver's account id.
+    /// La llave de acceso sólo permite transacciones con el id de cuenta del receptor dado.
     pub receiver_id: AccountId,
 
-    /// A list of method names that can be used. The access key only allows transactions with the
-    /// function call of one of the given method names.
-    /// Empty list means any method name can be used.
+    /// Una lista de métodos que puede ser usada. La llave de acceso sólo acepta transacciones con la
+    /// llamada de función de solo uno de los nombres de los métodos dados.
+    /// Una lista vacía significa que cualquier método puede ser usado.
     pub method_names: Vec<String>,
 }
 ```
 
-## Account without access keys
+## Cuenta sin llaves de acceso
 
-If account has no access keys attached it means that it has no owner who can run transactions from its behalf. However, if such accounts has code it can be invoked by other accounts and contracts.
+Si una cuenta no tiene llaves de acceso ligadas a ella significa que no tiene dueño el cual pueda ejecutar transacciones en su nombre. Sin embargo, si dicha cuenta tiene código, puede ser invocada por otras cuentas y contratos.
