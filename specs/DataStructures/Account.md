@@ -1,56 +1,56 @@
-# Accounts
+# Cuentas
 
-## Account ID
+## ID de cuenta
 
 [account_id]: #account_id
 
-NEAR Protocol has an account names system. Account ID is similar to a username. Account IDs have to follow the rules.
+El protocolo NEAR tiene un sistema de nombres de cuenta. El ID de la cuenta es similar a un nombre de usuario. Los ID de cuenta tienen que seguir ciertas reglas.
 
-### Account ID Rules
+### Reglas de los ID de las cuentas
 
-- minimum length is 2
-- maximum length is 64
-- **Account ID** consists of **Account ID parts** separated by `.`
-- **Account ID part** consists of lowercase alphanumeric symbols separated by either `_` or `-`.
-- **Account ID** that is 64 characters long and consists of lowercase hex characters is a specific **implicit account ID**.
+- La cantidad mínima de caracteres es 2
+- La cantidad máxima de caracteres es 64
+- El **ID de la cuenta** consiste de las **partes de el ID de la cuenta** separadas por un `.`
+- Una **parte del ID de la cuenta** consiste de símbolos alfanuméricos en minúscula separados por un `_` o `-`.
+- El **ID de la cuenta** que tiene un largo de 64 caracteres y consiste de caracteres hexadecimales en minúscula es un **ID de cuenta implícito** específico.
 
-Account names are similar to a domain names.
-Top level account (TLA) like `near`, `com`, `eth` can only be created by `registrar` account (see next section for more details).
-Only `near` can create `alice.near`. And only `alice.near` can create `app.alice.near` and so on.
-Note, `near` can NOT create `app.alice.near` directly.
+Los nombres de cuenta son similares a los dominios de los sitios web.
+Las cuentas de nivel superior (TLA por sus siglas en inglés) como `near`, `com`, `eth` solo pueden ser creadas al registrar una cuenta (vea la siguiente sección para más detalles).
+Solo `near` puede crear `alice.near`. Y solo `alice.near` puede crear `app.alice.near` y así sucesivamente.
+Ojo, `near` near NO PUEDE crear `app.alice.near` directamente.
 
-Additionally, there is an implicit account creation path. Account ids, that are 64 character long, can only be created with `AccessKey` that matches account id via `hex` derivation. Allowing to create new key pair - and the sender of funds to this account to actually create an account.
+Adicionalmente, hay un camino implícito para la creación de cuentas. Los id de cuentas, que tienen un largo de 64 caracteres, solo se pueden crear con una `llave de acceso` (AccessKey) que empata el id de la cuenta por medio de derivación `hexadecimal`. Permitiendo así la creación de un nuevo par de llaves – y al remitente de fondos para esta cuenta para realmente crear esta.
 
-Regex for a full account ID, without checking for length:
+Expresión regular para un ID de cuenta completo, sin revisar el largo del mismo:
 
 ```regex
 ^(([a-z\d]+[\-_])*[a-z\d]+\.)*([a-z\d]+[\-_])*[a-z\d]+$
 ```
-### Top Level Accounts
+### Cuentas de nivel superior (TLA)
 
-| Name | Value |
+| Nombre | Valor |
 | - | - |
 | REGISTRAR_ACCOUNT_ID | `registrar` |
 | MIN_ALLOWED_TOP_LEVEL_ACCOUNT_LENGTH | 32 |
 
-Top level account names (TLAs) are very valuable as they provide root of trust and discoverability for companies, applications and users.
-To allow for fair access to them, the top level account names that are shorter than `MIN_ALLOWED_TOP_LEVEL_ACCOUNT_LENGTH` characters going to be auctioned off.
+Las cuentas de nivel superior son demasiado valiosas porque estas proveen la raíz de la confianza y el descubrimiento para las compañías, aplicaciones y usuarios.
+Para permitir un acceso justo para ellas, los nombres de nivel superior que tienen un número menor de caracteres que el `MIN_ALLOWED_TOP_LEVEL_ACCOUNT_LENGTH` (largo mínimo para una cuenta de nivel superior) serán subastados.
 
-Specifically, only `REGISTRAR_ACCOUNT_ID` account can create new top level accounts that are shorter than `MIN_ALLOWED_TOP_LEVEL_ACCOUNT_LENGTH` characters. `REGISTRAR_ACCOUNT_ID` implements standard Account Naming (link TODO) interface to allow create new accounts.
+Específicamente, solo las cuentas del tipo `REGISTRAR_ACCOUNT_ID` pueden crear cuentas de nivel superior tienen un número de caracteres menor al `MIN_ALLOWED_TOP_LEVEL_ACCOUNT_LENGTH`. `REGISTRAR_ACCOUNT_ID` implementa el estándar llamado Interfaz de Nombrado de Cuentas (link TODO) para permitir la creación de nuevas cuentas.
 
 ```python
 def action_create_account(predecessor_id, account_id):
-    """Called on CreateAccount action in receipt."""
+    """Llamado en la acción CreateAccount en el recibo."""
     if len(account_id) < MIN_ALLOWED_TOP_LEVEL_ACCOUNT_LENGTH and predecessor_id != REGISTRAR_ACCOUNT_ID:
         raise CreateAccountOnlyByRegistrar(account_id, REGISTRAR_ACCOUNT_ID, predecessor_id)
-    # Otherwise, create account with given `account_id`.
+    # De lo contrario se crea una cuenta con el `account_id` dado.
 ```
 
-*Note: we are not going to deploy `registrar` auction at launch, instead allow to deploy it by Foundation after initial launch. The link to details of the auction will be added here in the next spec release post MainNet.*
+*Nota: no vamos a implementar la subasta `registrar` al momento del lanzamiento, en lugar de eso se permitirá que Foundation lo implemente después del lanzamiento inicial. El link para los detalles de la subasta serán añadidos aquí en la siguiente edición del post de “next spec release” en MainNet.*
 
-### Examples
+### Ejemplos
 
-Valid accounts:
+Cuentas válidas:
 
 ```
 ok
@@ -67,101 +67,101 @@ max_99.near
 near2019
 over.9000
 a.bro
-// Valid, but can't be created, because "a" is too short
+// Válido pero no puede ser creado, “a” es muy corto
 bro.a
 ```
 
-Invalid accounts:
+Cuentas no válidas:
 
 ```
-not ok           // Whitespace characters are not allowed
-a                // Too short
-100-             // Suffix separator
-bo__wen          // Two separators in a row
-_illia           // Prefix separator
-.near            // Prefix dot separator
-near.            // Suffix dot separator
-a..near          // Two dot separators in a row
-$$$              // Non alphanumeric characters are not allowed
-WAT              // Non lowercase characters are not allowed
-me@google.com    // @ is not allowed (it was allowed in the past)
-system           // cannot use the system account, see the section on System account below
-// TOO LONG:
+not ok           // Los espacios en blanco no son permitidos
+a                // Muy corto
+100-             // Separador de sufijo
+bo__wen          // Dos separadores seguidos
+_illia           // Separador de prefijo
+.near            // Punto deparador de prefijo
+near.            // Punto deparador de sufijo
+a..near          // Dos puntos separadores seguidos
+$$$              // Los caracteres no alfanuméricos no son permitidos
+WAT              // Las mayúsculas no son permitidas
+me@google.com    // @ no es permitida (antes sí se permitía)
+system           // No se puede usar el nombre de system, vea la sección Cuenta de sistema a continuación
+// MUY LARGO:
 abcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrstuvwxyz.abcdefghijklmnopqrstuvwxyz
 ```
 
-## System account
-`system` is a special account that is only used to identify refund receipts. For refund receipts, we set the predecessor_id to be `system` to indicate that it is a refund receipt. Users cannot create or access the `system` account. In fact, this account does not exist as part of the state. 
+## Cuenta del sistema
+`system` es una cuenta especial que solo es usada para identificar recibos de reembolso. Para los recibos de reembolso, tomamos el id del predecessor (predecessor_id) como `system` para indicar que es un recibo de reembolso. Los usuarios no pueden crear o acceder la cuenta `system`. De hecho, esta cuenta no existe como parte del estado del sistema.
 
-## Implicit account IDs
+## ID implícitos de las cuentas
 
-Implicit accounts work similarly to Bitcoin/Ethereum accounts.
-It allows you to reserve an account ID before it's created by generating a ED25519 key-pair locally.
-This key-pair has a public key that maps to the account ID. The account ID is a lowercase hex representation of the public key.
-ED25519 Public key is 32 bytes that maps to 64 characters account ID.
+Las cuentas implícitas funcionan similar a las cuentas de Bitcoin/Ethereum.
+Te permite reservar un ID de cuenta antes de ser creado al generar localmente un par de llaves de acceso ED25519.
+Este par de llaves de acceso tiene una llave publica que se se asigna al ID de la cuenta. El ID de la cuenta es una representación hexadecimal en minúsculas de la llave pública.
+La llave pública ED25519 es de 32 bytes y se asigna a un ID de cuenta con un largo de 64 caracteres.
 
-Example: public key in base58 `BGCCDDHfysuuVnaNVtEhhqeT4k9Muyem3Kpgq2U1m9HX` will map to an account ID `98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6de`.
+Ejemplo: Una llave pública en base58 `BGCCDDHfysuuVnaNVtEhhqeT4k9Muyem3Kpgq2U1m9HX` se asignará a al ID de cuenta `98793cd91a3f870fb126f66285808c7e094afcfc4eda8a970f6648cdf0dbd6de`.
 
-The corresponding secret key allows you to sign transactions on behalf of this account once it's created on chain.
+La llave de acceso secreta correspondiente te permite firmar transacciones a nombre de esta cuenta una vez que fue creada en la blockchain.
 
-### Implicit account creation
+### Creación de cuentas implícitas
 
-An account with implicit account ID can only be created by sending a transaction/receipt with a single `Transfer` action to the implicit account ID receiver:
-- The account will be created with the account ID.
-- The account will have a new full access key with the ED25519-curve public key of `decode_hex(account_id)` and nonce `0`.
-- The account balance will have a transfer balance deposited to it.
+Una cuenta con un ID de cuenta implícito solo se puede crear al enviar una transacción/recibo con una sola acción `Transfer` para el ID de cuenta implícito que lo recibirá:
+- La cuenta será cread con el ID de la cuenta.
+- La cuenta tendrá una llave de acceso completo con la llave pública ED25519-curva que viene de `decode_hex(account_id)` y un nonce de `0`.
+- El balance de la cuenta tendrá un saldo de transferencia depositado.
 
-This account can not be created using `CreateAccount` action to avoid being able to hijack the account without having the corresponding private key.
+Esta cuenta no puede ser creada con la acción `CreateAccount` para así evitar el robo de la misma cuenta sin tener la llave de acceso privada correspondiente.
 
-Once an implicit account is created it acts as a regular account until it's deleted.
+Una vez que una cuenta implícita es creada actúa como una cuenta regular hasta que se elimine.
 
-## Account
+## Cuenta
 
 [account]: #account
 
-Data for an single account is collocated in one shard. The account data consists of the following:
+Los datos para una sola cuenta son colocados en un solo fragmento. Los datos de la cuenta consisten en lo siguiente:
 
 - Balance
-- Locked balance (for staking)
-- Code of the contract
-- Key-value storage of the contract. Stored in a ordered trie
-- [Access Keys](AccessKey.md)
-- [Postponed ActionReceipts](../RuntimeSpec/Receipts.md#postponed-actionreceipt)
-- [Received DataReceipts](../RuntimeSpec/Receipts.md#received-datareceipt)
+- Balance bloqueado (para el staking)
+- El código del contrato
+- Almacenamiento llave-valor del contrato. Almacenados en un tipo de árbol ordenado (trie).
+- [Llaves de acceso](AccessKey.md)
+- [Recibos de acción pospuestos](../RuntimeSpec/Receipts.md#postponed-actionreceipt)
+- [Recibos de datos recibidos](../RuntimeSpec/Receipts.md#received-datareceipt)
 
 #### Balances
 
-Total account balance consists of unlocked balance and locked balance.
+El balance total de la cuenta consiste del balance bloqueado y del balance desbloqueado.
 
-Unlocked balance is tokens that the account can use for transaction fees, transfers staking and other operations.
+El balance desbloqueado son tokens que la cuenta puede usar para las cuotas de transacción, transferencias staking y otras operaciones.
 
-Locked balance is the tokens that are currently in use for staking to be a validator or to become a validator.
-Locked balance may become unlocked at the beginning of an epoch. See [Staking] for details.
+El balance bloqueado son los tokens que actualmente están siendo usados para staking, para ser un validador o para convertirse en un validador.
+ El balance bloqueado puede convertirse en balance desbloqueado al inicio de un epoch. Vea [Staking] para más detalles.
 
-#### Contracts
+#### Contratos
 
-A contract (AKA smart contract) is a program in WebAssembly that belongs to a specific account.
-When account is created, it doesn't have a contract.
-A contract has to be explicitly deployed, either by the account owner, or during the account creation.
-A contract can be executed by anyone who calls a method on your account. A contract has access to the storage on your account.
+Un contrato (AKA smart contract) es un programa escrito en el lenguaje de programación WebAssembly que pertenece a una cuenta en específico.
+Cuando una cuenta es creada, no tiene un contrato.
+Un contrato tiene que ser implementado explícitamente, ya sea por el dueño de la cuenta o durante la creación de una.
+Un contrato puede ser ejecutado por cualquiera que llame un método en tu cuenta. Un contrato tiene acceso al almacenamiento dentro de tu cuenta.
 
-#### Storage
+#### Almacenamiento
 
-Every account has its own storage. It's a persistent key-value trie. Keys are ordered in lexicographical order.
-The storage can only be modified by the contract on the account.
-Current implementation on Runtime only allows your account's contract to read from the storage, but this might change in the future and other accounts's contracts will be able to read from your storage.
+Toda cuenta tiene su propio almacenamiento. Es un árbol (trie) persistente con estructura llave-valor. Las llaves son ordenadas en orden lexicográfico.
+El almacenamiento solo puede ser modificado por el contrato dentro de la cuenta.
+La implementación actual, durante el tiempo de ejecución sólo le permite al contrato leer el almacenamiento de tu cuenta, pero esto puede cambiar en el futuro y otros contratos de otras cuentas puedan leer tu almacenamiento.
 
-NOTE: Accounts are charged recurrent rent for the total storage. This includes storage of the account itself, contract code, contract storage and all access keys.
+NOTA: A las cuentas se les cobra una cuota recurrente por el almacenamiento total. Esto incluye el almacenamiento de la misma, el código del contrato, el almacenamiento del contrato y todas las llaves de acceso.
 
-#### Access Keys
+#### Llaves de acceso
 
-An access key grants an access to a account. Each access key on the account is identified by a unique public key.
-This public key is used to validate signature of transactions.
-Each access key contains a unique nonce to differentiate or order transactions signed with this access key.
+Una llave de acceso concede el acceso a una cuenta. Cada llave de acceso en la cuenta se identifica por una llave pública única.
+Esta llave pública es usada para validar la firma de las transacciones.
+Cada llave de acceso contiene un nonce único para diferenciar u ordenar las transacciones firmadas por esta llave de acceso.
 
-An access keys have a permission associated with it. The permission can be one of two types:
+Una llave de acceso tiene un permiso asociado. El permiso puede ser de dos tipos:
 
-- Full permission. It grants full access to the account.
-- Function call permission. It grants access to only issue function call transactions.
+- Permiso completo. Concede el acceso completo a la cuenta.
+- Permiso para el llamado de funciones. Concede el acceso solo para las transacciones de llamado de funciones.
 
-See [Access Keys] for more details.
+Vea [Llaves de acceso] para más detalles.
