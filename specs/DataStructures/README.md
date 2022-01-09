@@ -1,8 +1,8 @@
-# Primitives
+# Primitivos
 
-- [Account](Account.md)
-  - [Account ID](Account.md#account-id)
-  - [Account](Account.md#account)
-- [Access Keys](AccessKey.md)
-- [Transaction](Transaction.md)
-- [Merkle Proofs](MerkleProof.md)
+- [Cuenta](Account.md)
+  - [ID de cuenta](Account.md#account-id)
+  - [Cuenta](Account.md#account)
+- [Llaves de acceso](AccessKey.md)
+- [Transacciones](Transaction.md)
+- [Pruebas Merkle](MerkleProof.md)
