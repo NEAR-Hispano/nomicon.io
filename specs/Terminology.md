@@ -1,7 +1,7 @@
-# Terminology
+# Terminología
 
-## Abstraction definitions
+## Definiciones de abstracción
 
-### Chain
+### Cadena
 
-A *chain* is a replication machinery, that provides for any type of state a way to replicate across the network and reach consensus on the state.
+Una *cadena* es una maquinaria de replicación que provee para cualquier tipo de estado, una manera de replicar por la red y alcanzar un consenso del estado actual.
