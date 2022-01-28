@@ -1,12 +1,12 @@
 # Runtime Specification
 
-See:
-- [Runtime](Runtime.md)
+Vea:
+- [Tiempo de ejecución](Runtime.md)
 - [ApplyingChunk](ApplyingChunk.md)
-- [FunctionCall](FunctionCall.md)
-- [Transactions](Transactions.md)
-- [Actions](Actions.md)
-- [Receipts](Receipts.md)
-- [Refunds](Refunds.md)
-- [Scenarios](Scenarios/Scenarios.md)
-- [Components](Components/Components.md)
+- [Llamadas de función](FunctionCall.md)
+- [Transacciones](Transactions.md)
+- [Acciones](Actions.md)
+- [Recibos](Receipts.md)
+- [Reembolso](Refunds.md)
+- [Escenarios](Scenarios/Scenarios.md)
+- [Componentes](Components/Components.md)
