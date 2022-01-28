@@ -26,7 +26,7 @@ y produce las siguientes salidas:
 * Procesa [transacciones](Transactions.md) (en el orden de *transacciones*)
 * Procesa [recibos](Receipts.md) locales (en el orden de *transacciones* que los generaron)
 * Procesa [recibos](Receipts.md) retrasados (ordenados primeramente por el bloque en donde se generaron, después los primeros recibos locales basados en el orden de generación de *transacciones*, después los recibos entrantes, ordenados por el orden que ya tiene *incoming_receipts*)
-* Procesa [receipts](Receipts.md) entrantes (ordenados por *incoming_receipts*)
+* Procesa [recibos](Receipts.md) entrantes (ordenados por *incoming_receipts*)
 
 Cuando se procesan los recibos monitoreamos el gas usado (incluyendo el gas usado en las migraciones). Si usamos el límite del gas, imediatamente detenemos el procesamiento de los recibos retrasados, y para los locales y recibos entrantes los agregamos a los recibos retrasados.
 
