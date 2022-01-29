@@ -15,7 +15,7 @@ ActionReceipt {
 ```
 ### input_data_ids a PromiseResult
 
-`ActionReceipt.input_data_ids` deben de ser satisfechos antes de ser ejecutados (vea [Coincidencia de recibos](#receipt-matching)). Cada uno de los `ActionReceipt.input_data_ids` será convertido a `PromiseResult::Successful(Vec<u8>)` si `data_id.data` es `Some(Vec<u8>)` por el contrario si `data_id.data` es `None` la promesa será `PromiseResult::Failed`.
+`ActionReceipt.input_data_ids` deben de ser satisfechos antes de ser ejecutados (vea [Conciliación de recibos](#receipt-matching)). Cada uno de los `ActionReceipt.input_data_ids` será convertido a `PromiseResult::Successful(Vec<u8>)` si `data_id.data` es `Some(Vec<u8>)` por el contrario si `data_id.data` es `None` la promesa será `PromiseResult::Failed`.
 
 ## Entrada
 La `FunctionCall` se ejecuta en el ambiente de la cuenta del `receiver_id`.
