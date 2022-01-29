@@ -53,7 +53,7 @@ La salida de `FunctionCall`:
 - `burnt_gas`, `used_gas` - vea [Tarifas del tiempo de ejecución](Fees/Fees.md)
 - `balance` - balance de la cuenta no gastado (el balance de la cuenta podría ser gastado en depositos de `FunctionCall` creados recientemente o [`Acciones de transferencia`](Actions.md#transferaction) a otros contratos)
 - `storage_usage` - storage_usage después de la aplicación de ActionReceipt
-- `logs` - durante la ejecucón de un contrato, registros que vienen en formato de cadenas de texto del tipo utf8/16 pueden ser creados. Actualmente los logs no son persistidos.
+- `logs` - durante la ejecución de un contrato, registros que vienen en formato de cadenas de texto del tipo utf8/16 pueden ser creados. Actualmente los logs no son persistidos.
 - `new_receipts` - `ActionReceipts` nuevos creados durante la ejecucón. Estos recibos serán enviados al respectivo `receiver_id` (vea [Explicación de la conciliación de recibos](#receipt-matching))
 - el resultado puede ser [`ReturnData::Value(Vec<u8>)`](#value-result) o [`ReturnData::ReceiptIndex(u64)`](#receiptindex-result)`
 
