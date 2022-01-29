@@ -100,7 +100,7 @@ Pueden haber tres tipos de errores regresados cuando se aplican acciones de llam
 
 * `FunctionCallError` incluye todo alrededor de la ejecución del archivo binario wasm,
 desde compilar el archivo wasm a uno nativo hasta las trampas ocurridas mientras se ejecutan los binarios nativos compilados. Más específicamente
-inclute los errores siguientes:
+incluye los errores siguientes:
 ```rust
 pub enum FunctionCallError {
     /// Error de compilación de Wasm
@@ -109,7 +109,6 @@ pub enum FunctionCallError {
     LinkError {
         msg: String,
     },
-    /// Import/export resolve error
     /// Error de resolución de import/export
     MethodResolveError(MethodResolveError),
     /// Ocurrió una trampa durante la ejecución de un binario 
@@ -126,7 +125,6 @@ pub enum FunctionCallError {
 pub enum WasmTrap {
     /// Un código de operación `inalcanzable` fue ejecutado.
     Unreachable,
-    /// Llamada indirecta 
     /// Trampa de firma incorrecta indirecta de llamada.
     IncorrectCallIndirectSignature,
     /// Trampa de memoria fuera de los límites.
@@ -221,7 +219,6 @@ pub enum ExternalError {
     /// Error inesperado que es típicamente relacionado con la corrupción del almacenamiento del nodo.
     /// Es posible que el estado de la entrada sea inválido o malicioso.
     StorageError(StorageError),
-    /// Error when accessing validator information. Happens inside epoch manager.
     /// Error cuando accesamos la información del validador. Pasa dentro del manejador de epoch.
     ValidatorError(EpochError),
 }
