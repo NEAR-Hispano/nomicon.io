@@ -1,129 +1,129 @@
-# Transactions
+# Transacciones
 
-A transaction in Near is a list of [actions](Actions.md) and additional information:
+Una transacción en Near es una lista de [acciones](Actions.md) e información adicional:
 
 ```rust
 pub struct Transaction {
-    /// An account on which behalf transaction is signed
+    /// Una cuenta en cuyo nombre se firma la transacción
     pub signer_id: AccountId,
-    /// An access key which was used to sign a transaction
+    /// Una llave de acceso que fue usada para firmar la transacción
     pub public_key: PublicKey,
-    /// Nonce is used to determine order of transaction in the pool.
-    /// It increments for a combination of `signer_id` and `public_key`
+    /// Nonce es usado para determinar el orden de transacción en el grupo.
+    /// Se incrementa por una combinación de `signer_id` y `public_key`
     pub nonce: Nonce,
-    /// Receiver account for this transaction. If
+    /// Cuenta receptora para esta transacción. Si
     pub receiver_id: AccountId,
-    /// The hash of the block in the blockchain on top of which the given transaction is valid
+    /// El hash del bloque en la blockchain sobre la cual la transacción dada es válida
     pub block_hash: CryptoHash,
-    /// A list of actions to be applied
+    /// Una lista de acciones a ser aplicada
     pub actions: Vec<Action>,
 }
 ```
 
-## Signed Transaction
+## Transacciones firmadas
 
-`SignedTransaction` is what the node receives from a wallet through JSON-RPC endpoint and then routed to the shard where `receiver_id` account lives. Signature proves an ownership of the corresponding `public_key` (which is an AccessKey for a particular account) as well as authenticity of the transaction itself.
+`SignedTransaction` es lo que un nodo recibe de una billetera a través de un endpoint JSON-RPC y después al fragmento en donde `receiver_id` reside. La firma prueba la propiedad de la `public_key` correspondiente (que es una llave de acceso para una cuenta en particular) así como la autenticidad de la transacción en sí.
 
 ```rust
 pub struct SignedTransaction {
     pub transaction: Transaction,
-    /// A signature of a hash of the Borsh-serialized Transaction
+    /// La fima de un hash de una Transacción serializada Borsh
     pub signature: Signature,
 ```
 
-Take a look some [scenarios](Scenarios/Scenarios.md) how transaction can be applied.
+Dale un vistazo a algunos [escenarios](Scenarios/Scenarios.md) sobre como las transacciones pueden ser aplicadas.
 
-## Batched Transaction
+## Transacciones por lotes
 
-A `Transaction` can contain a list of actions. When there are more than one action in a transaction, we refer to such
-transaction as batched transaction. When such a transaction is applied, it is equivalent to applying each of the actions
-separately, except:
-* After processing a `CreateAccount` action, the rest of the action is applied on behalf of the account that is just created.
-This allows one to, in one transaction, create an account, deploy a contract to the account, and call some initialization
-function on the contract.
-* `DeleteAccount` action, if present, must be the last action in the transaction.
+Una `Transacción` puede contener una lista de acciones. Cuando hay más de una acción en una transacción, nos referimos a esta
+transacción como transacción en lote. Cuando dicha transacción es aplicada, es equivalente a aplicar cada una de las acciones
+por separado, excepto por: 
+* Despúes de procesar una acción de tipo `CreateAccount`, el resto de la acción es aplicada en el nombre de la cuenta que apenas fue creada.
+Esto permite a una, en una transacción, crear una cuenta, desplegar un contrato en la cuenta, y llamar alguna función de inicialización
+en el contrato.
+* La acción `DeleteAccount`, si está presente, debe de ser la última acción en la transacción.
 
-The number of actions in one transaction is limited by `VMLimitConfig::max_actions_per_receipt`, the current value of which
-is 100.
+El número de acciones en una transacción está limitada por `VMLimitConfig::max_actions_per_receipt`, del cual el valor actual
+es 100.
 
-## Transaction Validation and Errors
+## Transacciones, Validaciones y Errores
 
-When a transaction is received, various checks will be performed to ensure its validity. This section lists the checks
-and potentially errors returned when they fail.
+Cuando una transacción es recibida, varias revisiones serán realizadas para asegurar su validez. Esta sección enlista las revisiones
+y potenciales errores a ser retornados cuando fallan.
 
-### Basic Validation
+### Validación básica
 
-Basic validation of a transaction can be done without the state. Such validation includes
-- Whether `signer_id` is valid. If not, a
+Una validación básica de una transacción puede ser realizada sin el estado. Dicha validación incluye
+- Si `signer_id` es válido. Si no, un error
 ```rust
-/// TX signer_id is not in a valid format or not satisfy requirements see `near_core::primitives::utils::is_valid_account_id`
+/// TX signer_id no está en un formato válido o no satisface los requerimientos, vea `near_core::primitives::utils::is_valid_account_id`
 InvalidSignerId { signer_id: AccountId },
 ```
-error is returned.
-- Whether `receiver_id` is valid. If not, a
+es regresado.
+- Si `receiver_id` es válido. Si no, un error
 ```rust
-/// TX receiver_id is not in a valid format or not satisfy requirements see `near_core::primitives::utils::is_valid_account_id`
+/// TX receiver_id no está en un formato válido o no satisface los requerimientos, vea `near_core::primitives::utils::is_valid_account_id`
 InvalidReceiverId { receiver_id: AccountId },
 ```
-error is returned.
-- Whether `signature` is signed by `public_key`. If not, a
+es regresado.
+- Si `signature` es firmado por `public_key`. Si no, un error
 ```rust
-/// TX signature is not valid
+/// TX signature no es válido
 InvalidSignature
 ```
-error is returned.
-- Whether the number of actions included in the transaction is no greater than `max_actions_per_receipt`. If not, a
+es regresado.
+- Si el número de acciones incluídas en la transacción es mayor que `max_actions_per_receipt`. Si no, un error
 ```rust
- /// The number of actions exceeded the given limit.
+ /// El número de acciones excede el límite dado.
 TotalNumberOfActionsExceeded { total_number_of_actions: u64, limit: u64 }
 ```
-is returned.
-- Among the actions in the transaction, whether `DeleteAccount`, if present, is the last action. If not, a
+es regresado.
+- Dentro de las acciones en la transacción, si `DeleteAccount` está presente, es la última acción. Si no, un error
 ```rust
-/// The delete action must be a final action in transaction
+/// La acción eliminar debe ser una acción final en una transacción
 DeleteActionMustBeFinal
 ```
-error is returned.
-- Whether total prepaid gas does not exceed `max_total_prepaid_gas`. If not, a
+es regresado.
+- Si el gas prepagado total no excede `max_total_prepaid_gas`. Si no, un error
 ```rust
-/// The total prepaid gas (for all given actions) exceeded the limit.
+/// El gas prepagado total (para todas las acciones dadas) excedió el límite.
 TotalPrepaidGasExceeded { total_prepaid_gas: Gas, limit: Gas }
 ```
-error is returned.
-- Whether each action included is valid. Details of such check can be found in [action](Actions.md).
+es regresado.
+- Si cada acción incluída es válida. Los detalles de esta revisión pueden encontrarse en [acciones](Actions.md).
 
-### Validation With State
+### Validación con el estado
 
-After the basic validation is done, we check the transaction against current state to perform further validation. This includes
-- Whether `signer_id` exists. If not, a
+Después de que la validación básica es terminada, verificamos la transacción con el estado actual para realizar una validación adicional. Esto incluye
+- Si `signer_id` existe. Si no, un error
 ```rust
-/// TX signer_id is not found in a storage
+/// TX signer_id no fue encontrado en el almacenamiento
 SignerDoesNotExist { signer_id: AccountId },
 ```
-error is returned.
+es regresado.
 
-- Whether the transaction nonce is greater than the existing nonce on the access key. If not, a
+- Si el nonce de la transacción es mayor que el nonce existente en la llave de acceso. Si no, un error
 ```rust
-/// Transaction nonce must be account[access_key].nonce + 1
+/// El nonce de la transacción debe ser account[access_key].nonce + 1
 InvalidNonce { tx_nonce: Nonce, ak_nonce: Nonce },
 ```
-error is returned.
+error es regresado.
 
-- If `signer_id` account has enough balance to cover the cost of the transaction. If not, a
+- Si la cuenta `signer_id` tiene balance suficiente para cubrir el costo de la transacción. Si no, un error
 ```rust
- /// Account does not have enough balance to cover TX cost
+ /// La cuenta no tiene el balance suficiente para cubrir el costo de la TX
 NotEnoughBalance {
     signer_id: AccountId,
     balance: Balance,
     cost: Balance,
 }
 ```
-error is returned.
+error es regresado.
 
-- If the transaction is signed by a function call access key and the function call access key does not have enough
-allowance to cover the cost of the transaction, a
+- Si la transacción es firmada por una llave de acceso para llamadas de función y la esta no tiene el allowance suficiente
+para cubrir el costo de la transacción, un error
 ```rust
-/// Access Key does not have enough allowance to cover transaction cost
+/// La llave de acceso no tiene el allowance suficiente para cubrir el costo de la transacción
 NotEnoughAllowance {
     account_id: AccountId,
     public_key: PublicKey,
@@ -131,33 +131,33 @@ NotEnoughAllowance {
     cost: Balance,
 }
 ```
-error is returned.
+error es regresado.
 
-- If `signer_id` account does not have enough balance to cover its storage after paying for the cost of the transaction, a
+- Si la cuenta `signer_id` no tiene el balance suficiente para cubrir su almacenamiento después de pagar el costo de la transacción, un error
 ```rust
-/// Signer account doesn't have enough balance after transaction.
+/// La cuenta que firma no tiene el balance suficiente después de la transacción.
 LackBalanceForState {
-    /// An account which doesn't have enough balance to cover storage.
+    /// Una cuenta que no tiene el balance suficiente para cubrir el almacenamiento.
     signer_id: AccountId,
-    /// Required balance to cover the state.
+    /// Balance requerido para cubrir el estado.
     amount: Balance,
 }
 ```
-error is returned.
+error es regresado.
 
-- If a transaction is signed by a function call access key, the following errors are possible:
-* `InvalidAccessKeyError::RequiresFullAccess` if the transaction contains more than one action or if the only action it
-contains is not a `FunctionCall` action.
-* `InvalidAccessKeyError::DepositWithFunctionCall` if the function call action has nonzero `deposit`.
+- Si una transacción es firmada por una llave de acceso para llamadas de función, los siguientes errores son posibles:
+* `InvalidAccessKeyError::RequiresFullAccess` si la transacción contiene más de una acción o si la única acción que contiene
+no es una acción del tipo `FunctionCall`.
+* `InvalidAccessKeyError::DepositWithFunctionCall` si la acción de llamada de función tiene un `deposit` diferente de 0.
 *
 ```rust
-/// Transaction `receiver_id` doesn't match the access key receiver_id
+/// El `receiver_id` de la transacción no cuadra con la llave de acceso del receiver_id
 InvalidAccessKeyError::ReceiverMismatch { tx_receiver: AccountId, ak_receiver: AccountId },
 ```
-is returned when transaction's `receiver_id` does not match the `receiver_id` of the access key.
+es retornado cuando el `receiver_id` de la transacción no cuadra con el `receiver_id` de la llave de acceso.
 *
 ```rust
-/// Transaction method name isn't allowed by the access key
+/// El nombre del método de la transaccón no esta permitido por la llave de acceso
 InvalidAccessKeyError::MethodNameMismatch { method_name: String },
 ```
-is returned if the name of the method that the transaction tries to call is not allowed by the access key.
+es retornado si el nombre del método que la transacción trata de llamar no es permitido por la llave de acceso.
