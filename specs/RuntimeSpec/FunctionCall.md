@@ -21,7 +21,7 @@ ActionReceipt {
 La `FunctionCall` se ejecuta en el ambiente de la cuenta del `receiver_id`.
 
 - un vector de los [Resultados de la promesa](#promise-results) que pueden ser accesados por `promise_result` importando [PromisesAPI](Components/BindingsSpec/PromisesAPI.md)
-- Los parámetros `signer_id` y `signer_public_key` de la transacción original que vienen de ActionReceipt (e.j.  `method_name`, `args`, `predecessor_id`, `deposit`, `prepaid_gas` (que es el `gas` en FunctionCall)))
+- Los parámetros `signer_id` y `signer_public_key` de la transacción original que vienen de ActionReceipt (e.j.  `method_name`, `args`, `predecessor_id`, `deposit`, `prepaid_gas` (que es el `gas` en FunctionCall))
 - datos generales de una blockchain (e.j. `block_index`, `block_timestamp`)
 - leer datos del almacenamiento de la cuenta
 
