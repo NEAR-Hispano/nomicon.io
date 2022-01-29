@@ -149,7 +149,7 @@ error es regresado.
 * `InvalidAccessKeyError::RequiresFullAccess` si la transacción contiene más de una acción o si la única acción que contiene
 no es una acción del tipo `FunctionCall`.
 * `InvalidAccessKeyError::DepositWithFunctionCall` si la acción de llamada de función tiene un `deposit` diferente de 0.
-*
+
 ```rust
 /// El `receiver_id` de la transacción no cuadra con la llave de acceso del receiver_id
 InvalidAccessKeyError::ReceiverMismatch { tx_receiver: AccountId, ak_receiver: AccountId },
