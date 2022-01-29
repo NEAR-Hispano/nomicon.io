@@ -40,7 +40,7 @@ Durante la ejecución, la máquina virtual hace lo siguiente:
 
 - cuenta el gas quemado en la ejecución
 - cuenta el gas usado (que es el `gas usado` + el gas agregado a los nuevos recibos creados)
-- cuenta como el almacenamiento de la cuenta incremente debido a la llamada
+- cuenta cómo el almacenamiento de la cuenta incremente debido a la llamada
 - colecta los logs producidos por el contrato
 - establece los datos a regresar
 - crea recibos nuevos mediante la [API de promesas](Components/BindingsSpec/PromisesAPI.md)
