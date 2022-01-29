@@ -32,7 +32,7 @@ Una lista completa de los datos dispobibles para los contratos puede ser encontr
 
 Primero que nada, el tiempo de ejecución prepara el archivo binario Wasm para ser ejecutado:
 - carga el código del contrato desde el `receiver_id` del almacenamiento de la [cuenta](../Primitives/Account.md#account)
-- deserializa y vaida el `código` dentro del archivo binario Wasm (vea `prepare::prepare_contract`)
+- deserializa y valida el `código` dentro del archivo binario Wasm (vea `prepare::prepare_contract`)
 - inyecta la función que cuenta el gas llamada `gas` que cobrará el gas al principio de cada bloque de código
 - instancía la [Especificación de vinculación](Components/BindingsSpec/BindingsSpec.md) con el archivo binario y llama a la función exportada `FunctionCall.method_name`
 
