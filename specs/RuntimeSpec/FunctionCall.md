@@ -119,7 +119,7 @@ pub enum FunctionCallError {
 ```
 - `CompilationError` incluye los errores que pueden ocurrir durante la compilación de un archivo binario wasm.
 - `LinkError` es retornado cuando el el tiempo de ejecución del wasmer no puede enlazar el módulo wasm con los imports proporcionados.
-- `MethodResolveError` ocurre cuando el método en la acción no puede ser encontrado en le código del contrado.
+- `MethodResolveError` ocurre cuando el método en la acción no puede ser encontrado en le código del contrato.
 - `WasmTrap` pasa cuando una trampa ocurre durante la ejecución de un binario. Las trampas incluyen
 ```rust
 pub enum WasmTrap {
