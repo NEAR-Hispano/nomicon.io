@@ -51,7 +51,7 @@ La salida de `FunctionCall`:
 
 - actualizaciones del almacenamiento - cambia al trie de almacenamiento de la cuenta que será aplicado en una llamada exitosa
 - `burnt_gas`, `used_gas` - vea [Tarifas del tiempo de ejecución](Fees/Fees.md)
-- `balance` - balance de la cuenta no gastado (el balance de la cuenta podría ser gastado en depositos de `FunctionCall` creados recientemente o [`Acciones de transferencia`](Actions.md#transferaction)) a otros contratos)
+- `balance` - balance de la cuenta no gastado (el balance de la cuenta podría ser gastado en depositos de `FunctionCall` creados recientemente o [`Acciones de transferencia`](Actions.md#transferaction) a otros contratos)
 - `storage_usage` - storage_usage después de la aplicación de ActionReceipt
 - `logs` - durante la ejecucón de un contrato, registros que vienen en formato de cadenas de texto del tipo utf8/16 pueden ser creados. Actualmente los logs no son persistidos.
 - `new_receipts` - `ActionReceipts` nuevos creados durante la ejecucón. Estos recibos serán enviados al respectivo `receiver_id` (vea [Explicación de la conciliación de recibos](#receipt-matching))
