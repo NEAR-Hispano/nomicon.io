@@ -181,7 +181,7 @@ pub enum HostError {
     InvalidReceiptIndex { receipt_index: u64 },
     /// El índice de iterador `iterator_index` no existe
     InvalidIteratorIndex { iterator_index: u64 },
-    /// La máquina virtual retrnó un id de cuenta inválido
+    /// La máquina virtual retornó un id de cuenta inválido
     InvalidAccountId,
     /// La máquina virtual retornó un nombre de método inválido
     InvalidMethodName,
@@ -212,7 +212,7 @@ pub enum HostError {
 ```
 
 
-* `ExternalError` inclute los errores que ocurren durante la ejecución dentro de `External`, que es una interface entre el tiempo de ejecución
+* `ExternalError` incluye los errores que ocurren durante la ejecución dentro de `External`, que es una interface entre el tiempo de ejecución
 y el resto del sistema. Los errores posibles son:
 ```rust
 pub enum ExternalError {
