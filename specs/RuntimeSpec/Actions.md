@@ -1,6 +1,6 @@
-# Actions
+# Acciones
 
-There are a several action types in Near:
+Hay una variedad de tipos de acción en Near:
 
 ```rust
 pub enum Action {
@@ -15,19 +15,19 @@ pub enum Action {
 }
 ```
 
-Each transaction consists a list of actions to be performed on the `receiver_id` side. Since transactions are first
-converted to receipts when they are processed, we will mostly concern ourselves with actions in the context of receipt
-processing.
+Cada transacción consiste de una lista de acciones a ser realizadas en el lado del `receiver_id`. Dado que las transacciones son convertidas
+a recibos primero cuando estas son procesadas, nos preocuparemos principalmente con las acciones en el contexto del procesamiento
+de recibos.
  
-For the following actions, `predecessor_id` and `receiver_id` are required to be equal:
+Para las siguientes acciones, se requiere que `predecessor_id` y `receiver_id` sean iguales:
 - `DeployContract`
 - `Stake`
 - `AddKey`
 - `DeleteKey`
 - `DeleteAccount`
 
-NOTE: if the first action in the action list is `CreateAccount`, `predecessor_id` becomes `receiver_id`
-for the rest of the actions until `DeleteAccount`. This gives permission by another account to act on the newly created account.
+NOTA: si la primera acción en la lista de acciones es `CreateAccount`, `predecessor_id` se vuelve `receiver_id`
+para el resto de las acciones hasta llegar a `DeleteAccount`. Esto da el permiso a otra cuenta para actuar en la cuenta recién creada.
 
 ## CreateAccountAction
 
@@ -35,19 +35,20 @@ for the rest of the actions until `DeleteAccount`. This gives permission by anot
 pub struct CreateAccountAction {}
 ```
 
-If `receiver_id` has length == 64, this account id is considered to be `hex(public_key)`, meaning creation of account only succeeds if followed up with `AddKey(public_key)` action.
+Si `receiver_id` tiene una longitud de 64, este id de cuanta será considerado como `hex(public_key)`, lo que significa que la creación de la cuenta solo tiene 
+éxito si esta viene seguida de la acción `AddKey(public_key)`.
 
-**Outcome**:
-- creates an account with `id` = `receiver_id`
-- sets Account `storage_usage` to `account_cost` (genesis config)
+**Resultados**:
+- crea una cuenta con `id` = `receiver_id`
+- establece el `storage_usage` de una cuenta a `account_cost` (configuración de génesis)
 
-### Errors
+### Errores
 
-**Execution Error**:
-- If the action tries to create a top level account whose length is no greater than 32 characters, and `predecessor_id` is not
-`registrar_account_id`, which is defined by the protocol, the following error will be returned
+**Errores de ejecución**:
+- Si la acción trata de crear una cuenta de nivel alto la cual la longitud no es mayor a 32 carácteres, y `predecessor_id` no es
+`registrar_account_id`, el cual es definido por el protocolo, el siguiente error será regresado
 ```rust
-/// A top-level account ID can only be created by registrar.
+/// Un ID de cuenta de alto nivel solo puede ser creado por registrar.
 CreateAccountOnlyByRegistrar {
     account_id: AccountId,
     registrar_account_id: AccountId,
@@ -55,10 +56,10 @@ CreateAccountOnlyByRegistrar {
 }
 ```
 
-- If the action tries to create an account that is neither a top-level account or a subaccount of `predecessor_id`,
-the following error will be returned
+- Si la acción trata de crear una cuenta de alto nivel o una subcuenta de `predecessor_id`,
+el siguiente error será regresado
 ```rust
-/// A newly created account must be under a namespace of the creator account
+/// Una cuenta recién creada debe estar bajo un espacio de nombres de la cuenta del creador
 CreateAccountNotAllowed { account_id: AccountId, predecessor_id: AccountId },
 ```
 
@@ -70,90 +71,92 @@ pub struct DeployContractAction {
 }
 ```
 
-**Outcome**:
-- sets the contract code for account
+**Salida**:
+- establece el código del contrato para la cuenta
 
-### Errors
+### Errores
 
-**Validation Error**:
-- if the length of `code` exceeds `max_contract_size`, which is a genesis parameter, the following error will be returned:
+**Error de validación**:
+- si la longitud de `code` excede `max_contract_size`, el cual es un parámetro génesis, el siguiente error será regresado:
 ```rust
-/// The size of the contract code exceeded the limit in a DeployContract action.
+/// El tamaño del código del contrato excede el límite en una acción DeployContract.
 ContractSizeExceeded { size: u64, limit: u64 },
 ```
 
-**Execution Error**:
-- If state or storage is corrupted, it may return `StorageError`.
+**Error de ejecución**:
+- Si el estado o el almacenamiento se corrompe, tal vez regrese `StorageError`.
 
 ## FunctionCallAction
 
 ```rust
 pub struct FunctionCallAction {
-    /// Name of exported Wasm function
+    /// Nombre de la función Wasm exportada
     pub method_name: String,
-    /// Serialized arguments
+    /// Argumentos serializados
     pub args: Vec<u8>,
-    /// Prepaid gas (gas_limit) for a function call
+    /// Gas prepagado (gas_limit) para una llamada de función
     pub gas: Gas,
-    /// Amount of tokens to transfer to a receiver_id
+    /// Cantidad de tokens a transferir a receiver_id
     pub deposit: Balance,
 }
 ```
 
-Calls a method of a particular contract. See [details](./FunctionCall.md).
+Llama a un método de un contrato en particular. Vea los [detalles](./FunctionCall.md).
 
 ## TransferAction
 
 ```rust
 pub struct TransferAction {
-    /// Amount of tokens to transfer to a receiver_id
+    /// Cantidad de tokens a transferir a receiver_id
     pub deposit: Balance,
 }
 ```
 
-**Outcome**:
-- transfers amount specified in `deposit` from `predecessor_id` to a `receiver_id` account
+**Salida**:
+- transfiere el monto especificado en `deposit` de `predecessor_id` a una cuenta `receiver_id`
 
-### Errors
+### Errores
 
-**Execution Error**:
+**Error de ejecución**:
 - If the deposit amount plus the existing amount on the receiver account exceeds `u128::MAX`,
 a `StorageInconsistentState("Account balance integer overflow")` error will be returned.
+- Si el monto del depósito más el monto existente en la cuenta receptora excede `u128::MAX`,
+un error `StorageInconsistentState("Account balance integer overflow")` será regresado.
 
 ## StakeAction
 
 ```rust
 pub struct StakeAction {
-    // Amount of tokens to stake
+    // Cantidad de tokens a stakear
     pub stake: Balance,
-    // This public key is a public key of the validator node
+    // Esta llave pública es una llave pública del nodo validador
     pub public_key: PublicKey,
 }
 ```
 
-**Outcome**:
-- A validator proposal that contains the staking public key and the staking amount is generated and will be included
-in the next block.
+**Salida**:
+- Una propuesta del validador que contiene la llave de acceso pública del staking y el monto dirigido al staking es generado y será incluído
+en el próximo bloque.
 
-### Errors
+### Errores
 
-**Validation Error**:
-- If the `public_key` is not an ristretto compatible ed25519 key, the following error will be returned:
+**Errores de validación**:
+- Si `public_key` no es una clave ed25519 compatible con ristretto, el siguiente error será regresado:
 ```rust
-/// An attempt to stake with a public key that is not convertible to ristretto.
+/// Intento de staking con una llave pública que no es convertible a ristretto.
 UnsuitableStakingKey { public_key: PublicKey },
 ```
 
-**Execution Error**:
-- If an account has not staked but it tries to unstake, the following error will be returned:
+**Errores de ejecución**:
+- Si una cuenta no ha hecho staking pero trata de hacer unstaking, el siguiente error será regresado:
 ```rust
-/// Account is not yet staked, but tries to unstake
+/// La cuenta no ha sido stakeada, pero trata de unstakear
 TriesToUnstake { account_id: AccountId },
 ```
 
-- If an account tries to stake more than the amount of tokens it has, the following error will be returned:
+- Si una cuenta trata de stakear más de la cantidad de tokens que tiene, el siguiente error será regresado:
 ```rust
-/// The account doesn't have enough balance to increase the stake.
+/// La cuenta no tiene el balance suficiente para incrementar el stake.
 TriesToStake {
     account_id: AccountId,
     stake: Balance,
@@ -162,7 +165,7 @@ TriesToStake {
 }
 ```
 
-- If the staked amount is below the minimum stake threshold, the following error will be returned:
+- Si la cantidad stakeada está por debajo del umbral mínimo de stake, el siguiente error será regresado:
 ```rust
 InsufficientStake {
     account_id: AccountId,
@@ -170,9 +173,9 @@ InsufficientStake {
     minimum_stake: Balance,
 }
 ```
-The minimum stake is determined by `last_epoch_seat_price / minimum_stake_divisor` where `last_epoch_seat_price` is the
-seat price determined at the end of last epoch and `minimum_stake_divisor` is a genesis config parameter and its current
-value is 10.
+El stake mínimo es determinado por `last_epoch_seat_price / minimum_stake_divisor` donde `last_epoch_seat_price` es el
+precio asiento determinado al final del último epoch y `minimum_stake_divisor` es un parámetro génesis de configuración
+y su valor actual es 10.
 
 ## AddKeyAction
 
@@ -183,41 +186,43 @@ pub struct AddKeyAction {
 }
 ```
 
-**Outcome**:
-- Adds a new [AccessKey](AccessKey) to the receiver's account and associates it with a `public_key` provided.
+**Saludo**:
+- Agrega una [Llave de acceso](AccessKey) a la cuenta receptora y la asocia con una `public_key`proporcionada.
 
-### Errors:
+### Errores:
 
-**Validation Error**:
+**Errores de validación**:
 
-If the access key is of type `FunctionCallPermission`, the following errors can happen
-- If `receiver_id` in `access_key` is not a valid account id, the following error will be returned 
+Si la llave de acceso es de tipo `FunctionCallPermission`, los siguientes errores pueden ocurrir
+- Si `receiver_id` en la `access_key` no es un ID de cuenta válido, el siguiente error será regresado
 ```rust
-/// Invalid account ID.
+/// ID de cuenta inválido
 InvalidAccountId { account_id: AccountId },
 ```
 
-- If the length of some method name exceed `max_length_method_name`, which is a genesis parameter (current value is 256),
-the following error will be returned 
+- Si la longitud de algún nombre de método excede `max_length_method_name`, que es un parámetro génesis (su valor actual es 256),
+el siguiente error será regresado
 ```rust
-/// The length of some method name exceeded the limit in a Add Key action.
+/// La longitud de algún nombre de método excede el límite de la acción Add Key
 AddKeyMethodNameLengthExceeded { length: u64, limit: u64 },
 ```
 
 - If the sum of length of method names (with 1 extra character for every method name) exceeds `max_number_bytes_method_names`, which is a genesis parameter (current value is 2000),
 the following error will be returned
+- Si la suma de la longitud de los nombres de método (con un carácter extra para cada nombre de método) excede `max_number_bytes_method_names`, que es un parámetro génesis (su valor actual es 2000),
+el siguiente error será regresado
 ```rust
-/// The total number of bytes of the method names exceeded the limit in a Add Key action.
+/// El número total de bytes de los nombres de método excedió el límite de la acción Add Key
 AddKeyMethodNamesNumberOfBytesExceeded { total_number_of_bytes: u64, limit: u64 }
 ```
 
-**Execution Error**:
-- If an account tries to add an access key with a given public key, but an existing access key with this public key already exists, the following error will be returned
+**Errores de ejecución**:
+- Si una cuenta trata de añadir una llave de acceso con una llave pública dada, pero una llave de acceso existente con esta llave pública ya existe, el siguiente error será regresado
 ```rust
-/// The public key is already used for an existing access key
+/// La llave pública ya fue usada por una clave de acceso existente
 AddKeyAlreadyExists { account_id: AccountId, public_key: PublicKey }
 ```
-- If state or storage is corrupted, a `StorageError` will be returned.
+- Si el estado o el almacenamiento se corrompe, un error de tipo `StorageError` será regresado.
 
 ## DeleteKeyAction
 
@@ -227,52 +232,52 @@ pub struct DeleteKeyAction {
 }
 ```
 
-**Outcome**:
-- Deletes the [AccessKey](AccessKey) associated with `public_key`.
+**Salidas**:
+- Elimina la [llave de acceso](AccessKey) asociada con la `public_key`.
 
-### Errors
+### Errores
 
-**Execution Error**:
+**Errores de ejecución**:
 
-- When an account tries to delete an access key that doesn't exist, the following error is returned
+- Cuando una cuenta trata de borrar una llave de acceso que no existe, el siguiente error es regresado
 ```rust
-/// Account tries to remove an access key that doesn't exist
+/// La cuenta trata de remover una llave de exceso que no existe
 DeleteKeyDoesNotExist { account_id: AccountId, public_key: PublicKey }
 ```
-- `StorageError` is returned if state or storage is corrupted.
+- `StorageError` es regresado si el estado o el almacenamiento se corrompe.
 
 ## DeleteAccountAction
 
 ```rust
 pub struct DeleteAccountAction {
-    /// The remaining account balance will be transferred to the AccountId below
+    /// El balance de la cuenta restante será transferido a este AccountId
     pub beneficiary_id: AccountId,
 }
 ```
 
-**Outcomes**:
-- The account, as well as all the data stored under the account, is deleted and the tokens are transferred to `beneficiary_id`.
+**Salidas**:
+- La cuenta, y todos los datos guardados dentro de esta misma, será borrada y los tokens serán transferidos a `beneficiary_id`.
 
-### Errors
+### Errores
 
-**Validation Error**
-- If `beneficiary_id` is not a valid account id, the following error will be returned
+**Errores de validación**
+- Si `beneficiary_id` no es un id de cuenta válido, el siguiente error será regresado
 ```rust
-/// Invalid account ID.
+/// ID de cuenta inválido.
 InvalidAccountId { account_id: AccountId },
 ```
 
-- If this action is not the last action in the action list of a receipt, the following error will be returned
+- Si esta acción no es la última en la lista de la acciones de un recibo, el siguiente error será regresado
 ```rust
-/// The delete action must be a final action in transaction
+/// La acción eliminar debe de ser la acción final en una transacción
 DeleteActionMustBeFinal
 ```
 
-- If the account still has locked balance due to staking, the following error will be returned
+- Si la cuenta todavía tiene balance bloqueado debido al staking, el siguiente error será regresado
 ```rust
-/// Account is staking and can not be deleted
+/// La cuenta se encuentra stakeando y no puede ser eliminada
 DeleteAccountStaking { account_id: AccountId }
 ```
 
-**Execution Error**:
-- If state or storage is corrupted, a `StorageError` is returned.
+**Errores de ejecución**:
+- Si el estado o el almacenamiento se corrompen, un error de tipo `StorageError` es regresado.
