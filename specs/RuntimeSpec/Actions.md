@@ -118,8 +118,6 @@ pub struct TransferAction {
 ### Errores
 
 **Error de ejecución**:
-- If the deposit amount plus the existing amount on the receiver account exceeds `u128::MAX`,
-a `StorageInconsistentState("Account balance integer overflow")` error will be returned.
 - Si el monto del depósito más el monto existente en la cuenta receptora excede `u128::MAX`,
 un error `StorageInconsistentState("Account balance integer overflow")` será regresado.
 
@@ -207,8 +205,6 @@ el siguiente error será regresado
 AddKeyMethodNameLengthExceeded { length: u64, limit: u64 },
 ```
 
-- If the sum of length of method names (with 1 extra character for every method name) exceeds `max_number_bytes_method_names`, which is a genesis parameter (current value is 2000),
-the following error will be returned
 - Si la suma de la longitud de los nombres de método (con un carácter extra para cada nombre de método) excede `max_number_bytes_method_names`, que es un parámetro génesis (su valor actual es 2000),
 el siguiente error será regresado
 ```rust
