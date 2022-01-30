@@ -186,7 +186,7 @@ pub struct AddKeyAction {
 }
 ```
 
-**Saludo**:
+**Salidas**:
 - Agrega una [Llave de acceso](AccessKey) a la cuenta receptora y la asocia con una `public_key`proporcionada.
 
 ### Errores:
