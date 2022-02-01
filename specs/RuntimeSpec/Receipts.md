@@ -1,91 +1,94 @@
-# Receipt
+# Recibo
 
-All cross-contract (we assume that each account lives in it's own shard) communication in Near happens trough Receipts.
-Receipts are stateful in a sense that they serve not only as messages between accounts but also can be stored in the account storage to await DataReceipts.
+Toda la comunicación cross-contrato (asumimos que cada cuenta vive en su propio fragmento) en Near pasa a través de Recibos.
+Los recibos tienen estado en el sentido en el que no solo sirven como mensajes entre cuentas pero también pueden ser almacenados en el almacenamiento de la cuenta 
+para esperar a los DataReceipts.
 
-Each receipt has a [`predecessor_id`](#predecessor_id) (who sent it) and [`receiver_id`](#receiver_id) the current account.
+Cada recibo tiene un [`predecessor_id`](#predecessor_id) (el que lo envió) y un [`receiver_id`](#receiver_id), la cuenta actual.
 
-Receipts are one of 2 types: action receipts or data receipts.
+Los recibos son de dos tipos: recibos de acción o recibos de datos.
 
-Data Receipts are receipts that contains some data for some `ActionReceipt` with the same `receiver_id`.
-Data Receipts have 2 fields: the unique data identifier `data_id` and `data` the received result.
-`data` is an `Option` field and it indicates whether the result was a success or a failure. If it's `Some`, it means
-the remote execution was successful and it represents the result as a vector of bytes.
+Los recibos de datos son recibos que contienen ciertos datas para algunos `ActionReceipt` con el mismo `receiver_id`.
+Los recibos de datos tienen 2 campos: el identificador de datos único `data_id` y `data`, el resultado que se recibió.
+`data` es un campo de tipo `Option` e indica si el resultado fue un éxito o un fracaso. Si es de tipo `Some`, significa
+que la ejecución remota fue exitosa y representa el resultado de un vector de bytes.
 
-Each `ActionReceipt` also contains fields related to data:
+Cada `ActionReceipt` también contiene campos relacionados a los datos:
 
-- [`input_data_ids`](#input_data_ids) - a vector of input data with the `data_id`s required for the execution of this receipt.
-- [`output_data_receivers`](#output_data_receivers) - a vector of output data receivers. It indicates where to send outgoing data.
-Each `DataReceiver` consists of `data_id` and `receiver_id` for routing.
+- [`input_data_ids`](#input_data_ids) - un vector de una entrada de datos con los `data_id`s requeridos para la ejecución de este recibo.
+- [`output_data_receivers`](#output_data_receivers) - un vector de receptores de datos de salida. Indica a donde enviar los datos salientes.
+Cada `DataReceiver` consiste de `data_id` y un `receiver_id` para el enrutamiento.
 
-Before any action receipt is executed, all input data dependencies need to be satisfied.
-Which means all corresponding data receipts have to be received.
-If any of the data dependencies are missing, the action receipt is postponed until all missing data dependencies arrive.
+Antes de que se ejecute un recibo de acción, todas las dependencias de entradas de datos deben ser satisfechas.
+Lo que significa que se deben recibir todos los recibos de datos correspondientes.
+Si alguno de las dependencias de datos no se encuentra, el recibo de acción se pospone hasta que todas las dependencias de datos faltantes terminan de llegar.
 
-Because chain and runtime guarantees that no receipts are missing, we can rely that every action receipt will be executed eventually ([Receipt Matching explanation](#receipt-matching)).
+Porque la cadena y el tiempo de ejecución garantizan que ningún recibo se pierde, podemos confiar que cada recibo de acción será ejecutado eventualmente ([Explicación de conciliación de recibos](#receipt-matching)).
 
-Each `Receipt` has the following fields:
+Cada `Receipt` tiene los siguientes campos:
 
 #### predecessor_id
 
-- **`type`**: `AccountId`
+- **`tipo`**: `AccountId`
 
-The account_id which issued a receipt.
-In case of a gas or deposit refund, the account ID is `system`.
+El account_id que emitió el recibo.
+En caso de gas o un depósito de reembolso, el ID de cuenta es `system`.
 
 #### receiver_id
 
-- **`type`**: `AccountId`
+- **`tipo`**: `AccountId`
 
-The destination account_id.
+El account_id destino.
 
 #### receipt_id
 
-- **`type`**: `AccountId`
+- **`tipo`**: `AccountId`
 
-An unique id for the receipt.
+Un id único para el recibo.
 
 #### receipt
 
-- **`type`**: [ActionReceipt](#actionreceipt) | [DataReceipt](#datareceipt)
+- **`tipo`**: [ActionReceipt](#actionreceipt) | [DataReceipt](#datareceipt)
 
-There are 2 types of Receipt: [ActionReceipt](#actionreceipt) and [DataReceipt](#datareceipt). An `ActionReceipt` is a request to apply [Actions](Actions.md), while a `DataReceipt` is a result of the application of these actions.
+Hay dos tipos de recibos: [ActionReceipt](#actionreceipt) y [DataReceipt](#datareceipt). Un `ActionReceipt` es una petición para aplicar [Acciones](Actions.md),
+mientras que `DataReceipt` es un resultado de la aplicación de estas acciones.
 
 ## ActionReceipt
 
-`ActionReceipt` represents a request to apply actions on the `receiver_id` side. It could be derived as a result of a `Transaction` execution or another `ActionReceipt` processing. `ActionReceipt` consists the following fields:
+`ActionReceipt` representa una petición para aplicar acciones en el lado del `receiver_id`. Puede ser derivado como un resultado de una ejecución `Transacción`
+u otro procesamiento de un `ActionReceipt`. `ActionReceipt` consite de los siguientes campos:
 
 #### signer_id
 
-- **`type`**: `AccountId`
+- **`tipo`**: `AccountId`
 
-An account_id which signed the original [transaction](Transaction.md).
-In case of a deposit refund, the account ID is `system`.
+Un account_id que firma la [transacción](Transaction.md) original.
+En caso de un depósito de reembolso, el ID de cuenta es `system`.
 
 #### signer_public_key
 
-- **`type`**: `PublicKey`
+- **`tipo`**: `PublicKey`
 
-The public key of an [AccessKey](../Primitives/AccessKey.md) which was used to sign the original transaction.
-In case of a deposit refund, the public key is empty (all bytes are 0).
+La llave pública de una [Llave de acceso](../Primitives/AccessKey.md) que fue usada para firmar la transacción original.
+En caso de un depósito de reembolso, la llave pública está vacía (todos los bytes son 0).
 
 #### gas_price
 
-- **`type`**: `u128`
+- **`tipo`**: `u128`
 
-Gas price which was set in a block where the original [transaction](Transaction.md) has been applied.
+El precio del gas se estableción en el bloque donde la [transacción](Transaction.md) original se aplicó.
 
 #### output_data_receivers
 
-- **`type`**: `[DataReceiver{ data_id: CryptoHash, receiver_id: AccountId }]`
+- **`tipo`**: `[DataReceiver{ data_id: CryptoHash, receiver_id: AccountId }]`
 
-If smart contract finishes its execution with some value (not Promise), runtime creates a [`DataReceipt`]s for each of the `output_data_receivers`.
+Si un contrato inteligente termina su ejecución con algún valor (no Promesa), el tiempo de ejecución crea un [`DataReceipt`] para cada uno de los `output_data_receivers`.
 
 #### input_data_ids
 
-- **`type`**: `[CryptoHash]_`
+- **`tipo`**: `[CryptoHash]_`
 
-`input_data_ids` are the receipt data dependencies. `input_data_ids` correspond to `DataReceipt.data_id`.
+`input_data_ids` son los recibos de dependencia de datos. `input_data_ids` corresponden a `DataReceipt.data_id`.
 
 #### actions
 
@@ -93,81 +96,83 @@ If smart contract finishes its execution with some value (not Promise), runtime 
 
 ## DataReceipt
 
-`DataReceipt` represents a final result of some contract execution.
+`DataReceipt` representa el resultado final de la ejecución de algún contrato.
 
 #### data_id
 
-- **`type`**: `CryptoHash`
+- **`tipo`**: `CryptoHash`
 
-An a unique `DataReceipt` identifier.
+Un identificador `DataReceipt` único.
 
 #### data
 
-- **`type`**: `Option([u8])`
+- **`tipo`**: `Option([u8])`
 
-Associated data in bytes. `None` indicates an error during execution.
+Datos asociados en bytes. `None` indica un error durante la ejecución.
 
-# Creating Receipt
+# Creando recibos
 
-Receipts can be generated during the execution of a [SignedTransaction](./Transactions.md#SignedTransaction) (see [example](./Scenarios/FinancialTransaction.md)) or during application of some `ActionReceipt` which contains a [`FunctionCall`](#actions) action. The result of the `FunctionCall` could be either another `ActionReceipt` or a `DataReceipt` (returned data).
+Los recibos pueden ser generados durante la ejecución de una [Transacción firmada](./Transactions.md#SignedTransaction) (vea este [ejemplo](./Scenarios/FinancialTransaction.md)) 
+o durante la aplicación de algún `ActionReceipt` que contiene una acción de tipo [`FunctionCall`](#actions). El resultado de `FunctionCall` puede ser ya sea
+un `ActionReceipt` o un `DataReceipt` (datos retornados).
 
-# Receipt Matching
+# Conciliación de recibos
 
-Runtime doesn't require that Receipts come in a particular order. Each Receipt is processed individually. The goal of the `Receipt Matching` process is to match all [`ActionReceipt`s](#actionreceipt) to the corresponding [`DataReceipt`s](#datareceipt).
+El tiempo de ejecución no requiere que los Recibos vengan en un orden en particular. Cada Recibo es procesado individualmente. La meta del procesamiento de `Conciliación de Recibos` es de hacer coincidir todas los [`ActionReceipt`s](#actionreceipt) con los correspondientes [`DataReceipt`s](#datareceipt).
 
-## Processing ActionReceipt
+## Procesando ActionReceipt
 
-For each incoming [`ActionReceipt`](#actionreceipt) runtime checks whether we have all the [`DataReceipt`s](#datareceipt) (defined as [`ActionsReceipt.input_data_ids`](#input_data_ids)) required for execution. If all the required [`DataReceipt`s](#datareceipt) are already in the [storage](#received-datareceipt), runtime can apply this `ActionReceipt` immediately. Otherwise we save this receipt as a [Postponed ActionReceipt](#postponed-actionreceipt). Also we save [Pending DataReceipts Count](#pending-datareceipt-count) and [a link from pending `DataReceipt` to the `Postponed ActionReceipt`](#pending-datareceipt-for-postponed-actionreceipt). Now runtime will wait for all the missing `DataReceipt`s to apply the `Postponed ActionReceipt`.
+Para cada [`ActionReceipt`](#actionreceipt) el tiempo de ejecución revisa si tenemos todos los [`DataReceipt`s](#datareceipt) (definido como [`ActionsReceipt.input_data_ids`](#input_data_ids)) requeridos para le ejecución. Si todos los [`DataReceipt`s](#datareceipt) requeridos están ya en el [almacenamiento](#received-datareceipt), el tiempo de ejecución puede aplicar este `ActionReceipt` inmediatamente. De lo contrario guardaremos este recibo como un [ActionReceipt pospuesto](#postponed-actionreceipt). También salvamos el [Contador de DataReceipts pendientes](#pending-datareceipt-count) y [un enlace del `DataReceipt` pendiente a el `ActionReceipt Pospuesto`](#pending-datareceipt-for-postponed-actionreceipt). Ahora el tiempo de ejecución esperará por todos los `DataReceipt`s para aplicar el `ActionReceipt Pospuesto`.
 
-#### Postponed ActionReceipt
+#### ActionReceipt Pospuesto
 
-A Receipt which runtime stores until all the designated [`DataReceipt`s](#datareceipt) arrive.
+Un recibo el cual el tiempo de ejecución almacena hasta que el [`DataReceipt`s](#datareceipt) designado llega.
 
-- **`key`** = `account_id`,`receipt_id`
-- **`value`** = `[u8]`
+- **`llave`** = `account_id`,`receipt_id`
+- **`valor`** = `[u8]`
 
-_Where `account_id` is [`Receipt.receiver_id`](#receiver_id), `receipt_id` is [`Receipt.receiver_id`](#receipt_id) and value is a serialized [`Receipt`](#receipt) (which [type](#type) must be [ActionReceipt](#actionreceipt))._
+_Donde `account_id` es [`Receipt.receiver_id`](#receiver_id), `receipt_id` es [`Receipt.receiver_id`](#receipt_id) y el valor es un [`Recibo`](#receipt) serializado (el cual el [tipo](#type) debe de ser [ActionReceipt](#actionreceipt))._
 
-#### Pending DataReceipt Count
+#### Contador de DataReceipt Pendiente
 
-A counter which counts pending [`DataReceipt`s](#DataReceipt) for a [Postponed Receipt](#postponed-receipt) initially set to the length of missing [`input_data_ids`](#input_data_ids) of the incoming `ActionReceipt`. It's decrementing with every new received [`DataReceipt`](#datareceipt):
+Un contador que cuenta los [`DataReceipt`s](#DataReceipt) pendientes para un [Recibo Pospuesto](#postponed-receipt) inicialmente establecido a la longitud de los [`input_data_ids`](#input_data_ids) faltantes de los `ActionReceipt` entrantes. Se decrementa con cada [`DataReceipt`](#datareceipt) nuevo recibido:
 
-- **`key`** = `account_id`,`receipt_id`
-- **`value`** = `u32`
+- **`llave`** = `account_id`,`receipt_id`
+- **`valor`** = `u32`
 
-_Where `account_id` is AccountId, `receipt_id` is CryptoHash and value is an integer._
+_Donde `account_id` es AccountId, `receipt_id` es un CryptoHash y el valor es un entero._
 
-#### Pending DataReceipt for Postponed ActionReceipt
+#### DataReceipt Pendiente para ActionReceipt Pospuesto
 
-We index each pending `DataReceipt` so when a new [`DataReceipt`](#datareceipt) arrives we connect it to the [Postponed Receipt](#postponed-receipt) it belongs to.
+Indexamos cada `DataReceipt` pendiente para que cada vez que llega un [`DataReceipt`](#datareceipt) nuevo lo conectemos con su [Recibo Pospuesto](#postponed-receipt) al que pertenece.
 
-- **`key`** = `account_id`,`data_id`
-- **`value`** = `receipt_id`
+- **`llave`** = `account_id`,`data_id`
+- **`valor`** = `receipt_id`
 
-## Processing DataReceipt
+## Procesando DataReceipt
 
-#### Received DataReceipt
+#### DataReceipt Recibidos
 
-First of all, runtime saves the incoming `DataReceipt` to the storage as:
+Primero que nada, el tiempo de ejecución guarda los `DataReceipt` entrantes en el almacenamiento como:
 
-- **`key`** = `account_id`,`data_id`
-- **`value`** = `[u8]`
+- **`llave`** = `account_id`,`data_id`
+- **`valor`** = `[u8]`
 
-_Where `account_id` is [`Receipt.receiver_id`](#receiver_id), `data_id` is [`DataReceipt.data_id`](#data_id) and value is a [`DataReceipt.data`](#data) (which is typically a serialized result of the call to a particular contract)._
+_Donde `account_id` es [`Receipt.receiver_id`](#receiver_id), `data_id` es [`DataReceipt.data_id`](#data_id) y el valor es un [`DataReceipt.data`](#data) (que es típicamente un resultado serializado de la llamada a un contrato en particular)._
 
-Next, runtime checks if there are any [`Postponed ActionReceipt`](#postponed-actionreceipt) waiting for this `DataReceipt` by querying [`Pending DataReceipt` to the Postponed Receipt](#pending-datareceipt-for-postponed-actionReceipt). If there is no postponed `receipt_id` yet, we do nothing else. If there is a postponed `receipt_id`, we do the following:
+Después, el tiempo de ejecución revisa si hay algún [`ActionReceipt Pospuesto`](#postponed-actionreceipt) esperando por este `DataReceipt` consultando al [`DataReceipt Pendiente` a el Recibo Pospuesto](#pending-datareceipt-for-postponed-actionReceipt). Si no hay un `receipt_id` pospuesto aún, no hacemos nada. Si hay un `receipt_id` pospuesto, hacemos lo siguiente:
 
-- decrement [`Pending Data Count`](#pending-datareceipt-count) for the postponed `receipt_id`
-- remove found [`Pending DataReceipt` to the `Postponed ActionReceipt`](#pending-datareceipt-for-postponed-actionreceipt)
+- decrementa el [`Contador de Datos Pendientes`](#pending-datareceipt-count) para el `receipt_id` pospuesto.
+- remueve el [`DataReceipt Pendiente` encontrado para el `ActionReceipt Pospuesto`](#pending-datareceipt-for-postponed-actionreceipt)
 
-If [`Pending DataReceipt Count`](#pending-datareceipt-count) is now 0 that means all the [`Receipt.input_data_ids`](#input_data_ids) are in storage and runtime can safely apply the [Postponed Receipt](#postponed-receipt) and remove it from the store.
+Si el [`Contador de Datos Pendiente`](#pending-datareceipt-count) es 0 significa que todos los [`Receipt.input_data_ids`](#input_data_ids) están almacenados y el tiempo de ejecución puede aplicar el [Recibo Pospuesto](#postponed-receipt) seguramente y lo remueve del almacenamiento.
 
-## Case 1: Call to multiple contracts and await responses
+## Caso 1: Llamada a múltiples contratos y esperar respuestas
 
-Suppose runtime got the following `ActionReceipt`:
+Supongamos que el tiempo de ejecución tiene el siguiente `ActionReceipt`:
 
 ```python
-# Non-relevant fields are omitted.
+# Los campos no relevantes son omitidos
 Receipt{
     receiver_id: "alice",
     receipt_id: "693406"
@@ -177,12 +182,12 @@ Receipt{
 }
 ```
 
-If execution return Result::Value
+Si la ejecución regresa Result::Value
 
-Suppose runtime got the following `ActionReceipt` (we use a python-like pseudo code):
+Supongamos que el tiempo de ejecución recibió el siguiente `ActionReceipt` (usamos un pseudo código parecido a python):
 
 ```python
-# Non-relevant fields are omitted.
+# Los campos no relevantes son omitidos.
 Receipt{
     receiver_id: "alice",
     receipt_id: "5e73d4"
@@ -192,7 +197,7 @@ Receipt{
 }
 ```
 
-We can't apply this receipt right away: there are missing DataReceipt'a with IDs: ["e5fa44", "7448d8"]. Runtime does the following:
+No podemos aplicar este recibo inmediatamente: hay DataReceipts faltantes con los ID: ["e5fa44", "7448d8"]. El tiempo de ejecución hace lo siguiente:
 
 ```python
 postponed_receipts["alice,5e73d4"] = borsh_serialize(
@@ -209,12 +214,12 @@ pending_data_receipt_store["alice,7448d8"] = "5e73d4"
 pending_data_receipt_count = 2
 ```
 
-_Note: the subsequent Receipts could arrived in the current block or next, that's why we save [Postponed ActionReceipt](#postponed-actionreceipt) in the storage_
+_Nota: los Recibos subsecuentes pueden llegar en el bloque actual o el siguiente, es por eso que guardamos los [ActionReceipt Pospuestos](#postponed-actionreceipt) en el almacenamiento_
 
-Then the first pending `Pending DataReceipt` arrives:
+Luego llega el primer `Pending DataReceipt` pendiente:
 
 ```python
-# Non-relevant fields are omitted.
+# Los campos no relevantes son omitidos.
 Receipt {
     receiver_id: "alice",
     receipt: DataReceipt {
@@ -236,10 +241,10 @@ pending_data_receipt_count["alice,5e73d4"] = 1`
 del pending_data_receipt_store["alice,e5fa44"]
 ```
 
-And finally the last `Pending DataReceipt` arrives:
+Y finalmente el último `Pending DataReceipt` llega:
 
 ```python
-# Non-relevant fields are omitted.
+# Los campos no relevantes son omitidos.
 Receipt{
     receiver_id: "alice",
     receipt: DataReceipt {
@@ -265,24 +270,25 @@ del pending_data_receipt_store["alice,7448d8"]
 apply_receipt(postponed_receipt)
 ```
 
-## Receipt Validation Error
+## Error de Validación de Recibo
 
-Some postprocessing validation is done after an action receipt is applied. The validation includes:
-* Whether the generated receipts are valid. A generated receipt can be invalid, if, for example, a function call
-generates a receipt to call another function on some other contract, but the contract name is invalid. Here there are
-mainly two types of errors:
-- account id is invalid. If the receiver id of the receipt is invalid, a
+Se realiza una validación de postprocesamiento después de que el recibo de acción es aplicado. La validación incluye:
+* Si los recibos generados son válidos. Un recibo generado puede ser inválido, si, por ejemplo, una llamada de función
+genera  un recibo para llamar otra función en algún otro contrato, pero el nombre del contrato en inválido. Aquí están
+los dos tipos de errores principales:
+- el id de cuenta es inválido. Si el id receptor del recibo es inválido, un error
 ```rust
-/// The `receiver_id` of a Receipt is not valid.
+/// El `receiver_id` de un Recibo no es válido.
 InvalidReceiverId { account_id: AccountId },
 ``` 
-error is returned.
-- some action is invalid. The errors returned here are the same as the validation errors mentioned in [actions](Actions.md).
-* Whether the account still has enough balance to pay for storage. If, for example, the execution of one function call
-action leads to some receipts that require transfer to be generated as a result, the account may no longer have enough
-balance after the transferred amount is deducted. In this case, a
+es regresado.
+- alguna acción es inválida. Los errores regresados aquí son los mismos que los errores de validación mencionados en [acciones](Actions.md).
+* Si la cuenta todavía tiene el balance suficiente para pagar por el almacenamiento. Si, por ejemplo, la ejecución de una acción de llamada de función
+lleva a algunos recibos que requiere que genere transferencia para ser generado como un resultado, la cuenta tal vez no tenga el suficiente
+balance después de que la cantidad transferida es deducida. En este caso, un
 ```rust
 /// ActionReceipt can't be completed, because the remaining balance will not be enough to cover storage.
+/// ActionReceipt no puede ser completado, porque el balance restante no será suficiente para cubrir el almacenamiento.
 LackBalanceForState {
     /// An account which needs balance
     account_id: AccountId,
