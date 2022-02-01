@@ -1,4 +1,4 @@
-# Components
+# Componentes
 
-Here is the high-level diagram of various runtime components, including some blockchain layer components.
+Aquí está el diagrama de alto nivel de varios componentes del tiempo de ejecución, incluyendo algunos componentes de la capa de blockchain.
 <img src="../../images/runtime_architecture.svg" />
