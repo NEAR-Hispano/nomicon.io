@@ -1,5 +1,5 @@
-# Scenarios
+# Escenarios
 
-In the following sections we go over the common scenarios that runtime takes care of.
-- [Financial Transaction](FinancialTransaction.md)
-- [Cross-Contract Call](CrossContractCall.md)
+En la siguiente sección repasaremos los escenarios comunes de los que el tiempo de ejecución se encarga.
+- [Transacción financiera](FinancialTransaction.md)
+- [Llamada cross-contrato](CrossContractCall.md)
