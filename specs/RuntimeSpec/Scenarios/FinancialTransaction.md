@@ -1,33 +1,33 @@
-# Financial Transaction
+# Transacción financiera
 
-Suppose Alice wants to transfer 100 tokens to Bob.
-In this case we are talking about native Near Protocol tokens, oppose to user-defined tokens implemented through a smart contract.
-There are several way this can be done:
+Supongamos que Alice quiere transferir 100 tokens a Bob.
+En este caso estamos hablando de tokens de Near Protocol nativos, opuesto a los tokens definidos por el usuario implementeados a través de contratos inteligentes.
+Hay varias formas en las que esto se puede hacer:
 
-- Direct transfer through a transaction containing transfer action;
-- Alice calling a smart contract that in turn creates a financial transaction towards Bob.
+- Transferencia directa a través de una transacción que contenga un acción de transferencia;
+- Alice llamando a un contrato inteligente que a su vez crea una transacción financiera hacia Bob.
 
-In this section we are talking about the former simpler scenario.
+En esta sección hablaremos acerca del escenario anterior más simple.
 
-## Pre-requisites
+## Pre-requisitos
 
-For this to work both Alice and Bob need to have _accounts_ and an access to them through
-_the full access keys_.
+Para que esto funcione Alice y Bob necesitan tener _cuentas_ y un acceso a ellas a través de
+_las llaves de acceso completas_.
 
-Suppose Alice has account `alice_near` and Bob has account `bob_near`. Also, some time in the past,
-each of them has created a public-secret key-pair, saved the secret key somewhere (e.g. in a wallet application)
-and created a full access key with the public key for the account.
+Supongamos que Alices tiene la cuenta `alice_near` y Bob tiene la cuenta `bob_near`. También, hace ya tiempo,
+cada uno de ellos creó una public-secret key-pair (par de llaves públicas-privadas), guardó la llave secreta en algún lugar (e.j. en una aplicación de billetera)
+y creó una llave de acceso completo con la llave pública de la cuenta.
 
-We also need to assume that both Alice and Bob has some number of tokens on their accounts. Alice needs >100 tokens on the account
-so that she could transfer 100 tokens to Bob, but also Alice and Bob need to have some tokens to pay for the _rent_ of their account --
-which is essentially the cost of the storage occupied by the account in the Near Protocol network.
+También necesitamos asumir que Alice y Bob tienen algún número de tokens en sus cuentas. Alice necesita >100 tokens en su cuenta
+para que así ella pueda transferir 100 tokens a Bob, pero también Alice y Bob necesitan tener algunos tokens para pagar por la _renta_ de sus cuentas --
+que escencialmente es el costo del almacenamiento ocupado por la cuenta en la red de Near Protocol.
 
-## Creating a transaction
+## Creando un transacción
 
-To send the transaction neither Alice nor Bob need to run a node.
-However, Alice needs a way to create and sign a transaction structure.
-Suppose Alice uses near-shell or any other third-party tool for that.
-The tool then creates the following structure:
+Para enviar la transacción Alice o Bob necesitan ejecutar un nodo.
+Sin embargo, Alice necesita una manera de crear y firmar una estructura de transacción.
+Supongamos que alice usa near-shell o alguna otra herramienta de terceros para eso.
+La herramiento entonces crea la siguiente estructura:
 
 ```
 Transaction {
@@ -42,72 +42,71 @@ Transaction {
 }
 ```
 
-Which contains one token transfer action, the id of the account that signs this transaction (`alice_near`)
-the account towards which this transaction is addressed (`bob_near`). Alice also uses the public key
-associated with one of the full access keys of `alice_near` account.
+Que contiene una acción de transferencia de token, el ide de la cuenta que firma la transacción (`alice_near`)
+la cuenta hacia la que va la transacción (`bob_near`). Alice también usa la llave pública
+asociada con una de las llaves de acceso completo de la cuenta `alice_near`.
 
-Additionally, Alice uses the _nonce_ which is unique value that allows Near Protocol to differentiate the transactions (in case there are several transfers coming in rapid
-succession) which should be strictly increasing with each transaction. Unlike in Ethereum, nonces are associated with access keys, oppose to
-the entire accounts, so several users using the same account through different access keys need not to worry about accidentally
-reusing each other's nonces.
+Adicionalmente, Alice usa el _nonce_ que es un valor único que permite a Near Protocol diferenciar transacciones (en caso de que haya varias transacciones entrando rápidamente) 
+que debería estar incrementando estrictamente con cada transacción. A diferencia de Ethereum, donde los nonces son asociados con las llaves de acceso, opuesto a
+las cuentas, con esto varios usuarios usando las mismas cuentas a través de diferentes llaves de acceso no necesitan preocuparse de reusar accidentalmente
+los nonces de las demás personas.
 
-The block hash is used to calculate the transaction "freshness". It is used to make sure the transaction does
-not get lost (let's say somewhere in the network) and then arrive hours, days, or years later when it is not longer relevant
-or would be undesirable to execute. The transaction does not need to arrive at the specific block, instead it is required to
-arrive within certain number of blocks from the bock identified by the `block_hash` (as of 2019-10-27 the constant is 10 blocks).
-Any transaction arriving outside this threshold is considered to be invalid.
+El hash del bloque es usado para calcular la transacción "freshness". Es usado para asegurarse de que la transacción no
+se pierda (en algún lugar de la red por ejemplo) y despues llegar horas, días o años después cuando dejó de ser relevante
+o indeseable de ejecutar. La transacción no necesita llegar a un bloque en específico, por el contrario se requiere que llegue
+a un número determinado de bloques desde el bloque identificado por el `block_hash` (desde 2019-10-27 el valor constante es 10 bloques).
+Cualquier transacción llegando por debajo de este límite es considerada inválida.
 
-near-shell or other tool that Alice uses then signs this transaction, by: computing the hash of the transaction and signing it
-with the secret key, resulting in a `SignedTransaction` object.
+near-shell u otra herramienta que Alice usa firma la transacción: calculando el hash de la transacción y firmándola
+con la llave secreta, resultando en un objeto de tipo `SignedTransaction`.
 
-## Sending the transaction
+## Enviando la transacción
 
-To send the transaction, near-shell connects through the RPC to any Near Protocol node and submits it.
-If users wants to wait until the transaction is processed they can use `send_tx_commit` JSONRPC method which waits for the
-transaction to appear in a block. Otherwise the user can use `send_tx_async`.
+Para enviar la transacción, near-shell se conecta a través de RPC a cualquier node de Near Protocol y lo envía.
+Si los usuarios quieren esperar hasta que la transacción sea procesada, ellos pueden usar el método JSONRPC `send_tx_commit` que espera por
+que la transacción aparezca en un bloque. De otra manera el usuario puede usar `send_tx_async`.
 
-## Transaction to receipt
+## De transacción a recibo
 
-We skip the details on how the transaction arrives to be processed by the runtime, since it is a part of the blockchain layer
-discussion.
-We consider the moment where `SignedTransaction` is getting passed to `Runtime::apply` of the
-`runtime` crate.
-`Runtime::apply` immediately passes transaction to `Runtime::process_transaction`
-which in turn does the following:
+Nos saltamos los detalles acerca de como la transacción llega para ser procesada por el tiempo de ejecución, porque es parte de la discución acerca de la capa de blockchain.
+Consideramos el momento en donde `SignedTransaction` está siendo trasladada a `Runtime::apply` del crate `runtime`.
+`Runtime::apply` inmediatamente pasa la transacción a `Runtime::process_transaction`
+que a su vez hace lo siguiente:
 
-- Verifies that transaction is valid;
-- Applies initial reversible and irreversible charges to `alice_near` account;
-- Creates a receipt with the same set of actions directed towards `bob_near`.
+- Verifica que la transacción sea válida;
+- Aplica los cargos reversibles e irreversibles a la cuenta `alice_near`;
+- Crea un recibo con el mismo conjunto de acciones dirigidas hacia `bob_near`.
 
-The first two items are performed inside `Runtime::verify_and_charge_transaction` method.
-Specifically it does the following checks:
+Los primeros dos pasos se realizan dentro del método `Runtime::verify_and_charge_transaction`.
+Específicamente hace las siguientes revisiones:
 
-- Verifies that `alice_near` and `bob_near` are syntactically valid account ids;
-- Verifies that the signature of the transaction is correct based on the transaction hash and the attached public key;
-- Retrieves the latest state of the `alice_near` account, and simultaneously checks that it exists;
-- Retrieves the state of the access key of that `alice_near` used to sign the transaction;
-- Checks that transaction nonce is greater than the nonce of the latest transaction executed with that access key;
-- Checks whether the account that signed the transaction is the same as the account that receives it. In our case the sender (`alice_near`) and the receiver (`bob_near`) are not the same. We apply different fees if receiver and sender is the same account;
-- Applies the storage rent to the `alice_near` account;
-- Computes how much gas we need to spend to convert this transaction to a receipt;
-- Computes how much balance we need to subtract from `alice_near`, in this case it is 100 tokens;
-- Deducts the tokens and the gas from `alice_near` balance, using the current gas price;
-- Checks whether after all these operations account has enough balance to passively pay for the rent for the next several blocks
-  (an economical constant defined by Near Protocol). Otherwise account will be open for an immediate deletion, which we do not want;
-- Updates the `alice_near` account with the new balance and the used access key with the new nonce;
-- Computes how much reward should be paid to the validators from the burnt gas.
+- Verifica que `alice_near` y `bob_near` son ids de cuenta sintácticamente válidas;
+- Verifica que la firma de la transacción es correcta basándose en el hash de la transacción ligada a la llave pública;
+- Recupera el último estado de la cuenta `alice_near` y simúltaneamente revisa que exista;
+- Recupera el estado de las llave de acceso que `alice_near` usó para firmar la transacción;
+- Revisa que el nonce de la transacción es mayor al nonce de la última transacción ejecutada con esa llave de acceso;
+- Checa si la cuenta que firmó la transacción es la misma que cuenta que la recibe. En nuestro caso el remitente (`alice_near`) y el receptor
+(`bob_near`) no son los mismos. Aplicamos diferentes tarifas si el receptor y el remitente son la misma cuenta;
+- Aplica la renta del almacenamiento a la cuenta `alice_near`;
+- Calcula cuanto gas necesitamos gastar para convertir esta transacción a un recibo;
+- Calcula cuanto balance necesitamos substraer de `alice_near`, en este caso son 100 tokens;
+- Deduce los tokens y el gas del balance de `alice_near`, usando el precio actual del gas;
+- Revisa si después de todas estas operaciones la cuenta tiene el balance suficienta para pagar por la renta de los siguientes bloques
+  (una contante enconómica constante definida por el Protocolo Near). De lo contrario la cuenta estará libre para una eliminación inmediata, cosa que no queremos;
+- Actualiza la cuenta `alice_near` con el balance nuevo y usa las llaves de acceso usadoc con un nonce nuevo;
+- Calcula la recompensa que debe ser pagada a los validadores por el gas quemado.
 
-If any of the above operations fail all of the changes will be reverted.
+Si alguna de las operaciones falla, se revertirán todos los cambios.
 
-## Processing receipt
+## Procesando el recibo
 
-The receipt created in the previous section will eventually arrive to a runtime on the shard that hosts `bob_near` account.
-Again, it will be processed by `Runtime::apply` which will immediately call `Runtime::process_receipt`.
-It will check that this receipt does not have data dependencies (which is only the case of function calls) and will then call `Runtime::apply_action_receipt` on `TransferAction`.
-`Runtime::apply_action_receipt` will perform the following checks:
+El recibo creado en la sección pasada eventualmente llegará al tiempo de ejecución en el fragmento que aloja a la cuenta `bob_near`.
+Nuevamente, será procesada por `Runtime::apply` que inmediatamente llamará a `Runtime::process_receipt`.
+Revisará que este recibo no tiene dependencias de datos (que solo es el caso para las llamadas de función) y después llamara a `Runtime::apply_action_receipt` en `TransferAction`.
+`Runtime::apply_action_receipt` realizará las siguientes revisiones:
 
-- Retrieves the state of `bob_near` account, if it still exists (it is possible that Bob has deleted his account concurrently with the transfer transaction);
-- Applies the rent to Bob's account;
-- Computes the cost of processing a receipt and a transfer action;
-- Checks if `bob_near` still exists and if it is deposits the transferred tokens;
-- Computes how much reward should be paid to the validators from the burnt gas.
+- Recupera el estado de la cuenta `bob_near` si todavía existe (es posible que Bob haya borrado su cuenta al mismo tiempo que la transacción de transferencia);
+- Aplica la renta de la cuenta de Bob;
+- Calcula el costo de procesar un recibo y una acción de transferencia;
+- Revisa si `bob_near` todavía existe y si deposita los tokens transferidos; 
+- Calcula la recompensa que debe ser pagada a los validadores por el gas quemado.
