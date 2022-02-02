@@ -20,7 +20,7 @@ y creó una llave de acceso completo con la llave pública de la cuenta.
 
 También necesitamos asumir que Alice y Bob tienen algún número de tokens en sus cuentas. Alice necesita >100 tokens en su cuenta
 para que así ella pueda transferir 100 tokens a Bob, pero también Alice y Bob necesitan tener algunos tokens para pagar por la _renta_ de sus cuentas --
-que escencialmente es el costo del almacenamiento ocupado por la cuenta en la red de Near Protocol.
+que esencialmente es el costo del almacenamiento ocupado por la cuenta en la red de Near Protocol.
 
 ## Creando un transacción
 
