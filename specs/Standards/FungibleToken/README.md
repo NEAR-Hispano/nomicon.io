@@ -1,4 +1,4 @@
-## Fungible Token Standard
+## Estándar del token fungible
 
-- [Fungible Token Core](Core.md)
-- [Fungible Token Metadata](Metadata.md)
+- [Núcleo del token fungible](Core.md)
+- [Metadata del token fungible](Metadata.md)
