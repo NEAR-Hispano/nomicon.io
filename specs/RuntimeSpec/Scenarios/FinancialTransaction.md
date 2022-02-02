@@ -68,7 +68,7 @@ que la transacción aparezca en un bloque. De otra manera el usuario puede usar 
 
 ## De transacción a recibo
 
-Nos saltamos los detalles acerca de como la transacción llega para ser procesada por el tiempo de ejecución, porque es parte de la discución acerca de la capa de blockchain.
+Nos saltamos los detalles acerca de como la transacción llega para ser procesada por el tiempo de ejecución, porque es parte de la discusión acerca de la capa de blockchain.
 Consideramos el momento en donde `SignedTransaction` está siendo trasladada a `Runtime::apply` del crate `runtime`.
 `Runtime::apply` inmediatamente pasa la transacción a `Runtime::process_transaction`
 que a su vez hace lo siguiente:
@@ -92,7 +92,7 @@ Específicamente hace las siguientes revisiones:
 - Calcula cuanto balance necesitamos substraer de `alice_near`, en este caso son 100 tokens;
 - Deduce los tokens y el gas del balance de `alice_near`, usando el precio actual del gas;
 - Revisa si después de todas estas operaciones la cuenta tiene el balance suficienta para pagar por la renta de los siguientes bloques
-  (una contante enconómica constante definida por el Protocolo Near). De lo contrario la cuenta estará libre para una eliminación inmediata, cosa que no queremos;
+  (una constante enconómica definida por el Protocolo Near). De lo contrario la cuenta estará libre para una eliminación inmediata, cosa que no queremos;
 - Actualiza la cuenta `alice_near` con el balance nuevo y usa las llaves de acceso usadoc con un nonce nuevo;
 - Calcula la recompensa que debe ser pagada a los validadores por el gas quemado.
 
