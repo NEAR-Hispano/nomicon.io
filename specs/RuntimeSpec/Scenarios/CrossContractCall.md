@@ -1,19 +1,19 @@
-# Cross-Contract Call
+# Llamado cross-contrato
 
-This guide assumes that you have read the [Financial Transaction](FinancialTransaction.md) section.
+Esta guía asume que ya leíste la sección [Transacciones Financieras](FinancialTransaction.md).
 
-Suppose Alice is a calling a function `reserve_trip(city: String, date: u64)` on a smart contract deployed to a `travel_agency`
-account which in turn calls `reserve(date: u64)` on a smart contract deployed to a `hotel_near` account and attaches
-a callback to method `hotel_reservation_complete(date: u64)` on `travel_agency`.
+Supongamos que Alices está llamando a una función `reserve_trip(city: String, date: u64)` en un contrato inteligente desplegado en una
+cuenta llamada `travel_agency` que a su vez llama a `reserve(date: u64)` en un contrato inteligente desplegado en otra cuenta llamada `hotel_near` y liga
+un método callback al método `hotel_reservation_complete(date: u64)` en `travel_agency`.
 
 <img src="../../images/receipt_flow_diagram.svg" />
 
-## Pre-requisites
+## Pre-requisitos
 
-It possible for Alice to call the `travel_agency` in several different ways.
+Alices puede llamar a `travel_agency` de varias maneras diferentes.
 
-In the simplest scenario Alice has an account `alice_near` and she has a full access key.
-She then composes the following transaction that calls the `travel_agency`:
+En el escenario más simple Alice tiene una cuenta `alice_near` y tiene una llave de acceso completo.
+Desoués ella crea la siguiente transacción que llama a `travel_agency`:
 
 ```
 Transaction {
@@ -33,20 +33,19 @@ Transaction {
 }
 ```
 
-Here the public key corresponds to the full access key of `alice_near` account. All other fields in `Transaction` were
-discussed in the [Financial Transaction](FinancialTransaction.md) section. The `FunctionCallAction` action describes how
-the contract should be called. The `receiver_id` field in `Transaction` already establishes what contract should be executed,
-`FunctionCallAction` merely describes how it should be executed. Interestingly, the arguments is just a blob of bytes,
-it is up to the contract developer what serialization format they choose for their arguments. In this example, the contract
-developer has chosen to use JSON and so the tool that Alice uses to compose this transaction is expected to use JSON too
-to pass the arguments. `gas` declares how much gas `alice_near` has prepaid for dynamically calculated fees of the smart
-contract executions and other actions that this transaction may spawn. The `tokens` is the amount of `alice_near` attaches
-to be deposited to whatever smart contract that it is calling to. Notice, `gas` and `tokens` are in different units of
-measurement.
+Aquí la llave pública corresponde a la llave de acceso completo de la cuenta `alice_near`. Todos los otros campos en `Transaction` se
+analizaron más a fondo en la sección [Financial Transaction](FinancialTransaction.md). La acción `FunctionCallAction` describe como
+el contrato debe de ser llamado. El campo `receiver_id` en `Transaction` ya establece cuál contrato debe de ser ejecutado,
+`FunctionCallAction` simplemente describe como debería de ser ejecutado. Curiosamente, los argumentos son solo un blob de bytes,
+le corresponde al desarrolador del contrato cuál formato de serialización escoge para sus argumentos. En este ejemplo, el desarrollador
+del contrato ha escogido usar JSON, entonces se espera que la herramienta que Alice use para crear esta transacción use JSON también
+para pasar los argumentos. `gas` declara cuánto gas `alice_near` ha prepagado para las tarifas calculadas dinámicamente de las ejecuciones del
+contrato inteligente y otras acciones que esta transacción pueda crear. Los `tokens` son el monto que `alice_near` agrega
+para ser depositado a cualquier contrato inteligente que esté llamando. Note que, el `gas` y los `tokens` están en diferentes unidades de
+medición.
 
-Now, consider a slightly more complex scenario. In this scenario Alice uses a restricted access key to call the function.
-That is the permission of the access key is not `AccessKeyPermission::FullAccess` but is instead: `AccessKeyPermission::FunctionCall(FunctionCallPermission)`
-where
+Ahora, considere un escenario un poco más complejo. En este escenario Alice usa una llave de acceso restringida para llamar a esta función.
+Esto es que el permiso de esta llave de acceso no es `AccessKeyPermission::FullAccess` y por el contrario el permiso es: `AccessKeyPermission::FunctionCall(FunctionCallPermission)` donde
 
 ```
 FunctionCallPermission {
@@ -56,71 +55,71 @@ FunctionCallPermission {
 }
 ```
 
-This scenario might arise when someone Alice's parent has given them a restricted access to `alice_near` account by
-creating an access key that can be used strictly for trip management.
-This access key allows up to `3000` tokens to be spent (which includes token transfers and payments for gas), it can
-be only used to call `travel_agency` and it can be only used with the `reserve_trip` and `cancel_trip` methods.
-The way runtime treats this case is almost exactly the same as the previous one, with the only difference on how it verifies
-the signature of on the signed transaction, and that it also checks for allowance to not be exceeded.
+Este escenario podría surgir cuando algún padre de Alice le dió un acceso restringido a la cuenta `alice_near` al
+crear una clave de acceso que se puede utilizar estrictamente para la gestión de viajes.
+Esta llave de acceso permite hasta `3000` tokens para ser gastados (que incluye transferencias de tokens y pagos por gas), solo puede
+ser usado para llamar a `travel_agency` y solo puede ser usado con los métodos `reserve_trip` and `cancel_trip`.
+La manera en que el tiempo de ejecución maneja este caso es casi exactamente igual al pasado, con la única diferencia en como verifica
+la firma en la transacción firmada, y que además revisa el allowance para que no sea excedido.
 
-Finally, in the last scenario, Alice does not have an account (or the existence of `alice_near` is irrelevant). However,
-alice has full or restricted access key directly on `travel_agency` account. In that case `signer_id == receiver_id` in the
-`Transaction` object and runtime will convert transaction to the first receipt and apply that receipt in the same block.
+Finalmente, en el último escenario, Alice no tiene una cuenta (o la existencia de `alice_near` es irrelevante). Sin embargo,
+alice tiene una llave de acceso completo o restringido directamente en la cuenta `travel_agency`. En ese caso `signer_id == receiver_id` en
+el objeto `Transaction` y el tiempo de ejecución convertirá la transacción en el primer recibo y aplicará ese recibo en el mismo bloque.
 
-This section will focus on the first scenario, since the other two are the same with some minor differences.
+Esta sección se enfocará en el primer escenario, dado que los otros dos son lo mismo con algunas diferencias menores.
 
-## Transaction to receipt
+## Transacción a recibo
 
-The process of converting transaction to receipt is very similar to the [Financial Transaction](FinancialTransaction.md)
-with several key points to note:
+El proceso de convertir una transacción a un recibo es muy similar a la [Transacción Financiera](FinancialTransaction.md)
+con varios puntos clave a notar:
 
-- Since Alice attaches 100 tokens to the function call, we subtract them from `alice_near` upon converting transaction to receipt,
-  similar to the regular financial transaction;
-- Since we are attaching 1000000 prepaid gas, we will not only subtract the gas costs of processing the receipt from `alice_near`, but
-  will also purchase 1000000 gas using the current gas price.
+- Como alice liga 100 tokens a la llamada de función, los restamos de `alice_near` al convertir la transacción en recibo,
+  similar a la transacció financiera regular;
+- Como estamos agregando 1000000 de gas prepagado, no solo restaremos el costo del gas por el procesamiento del recibo de `alice_near`,
+  sino que también se comprará 1000000 de gas usando el precio de gas actual.
 
-## Processing the `reserve_trip` receipt
+## Procesando el recibo `reserve_trip`
 
-The receipt created on the shard that hosts `alice_near` will eventually arrive to the shard hosting `travel_agency` account.
-It will be processed in `Runtime::apply` which will check that receipt does not have data dependencies (which is the case because
-this function call is not a callback) and will call `Runtime::apply_action_receipt`.
-At this point receipt processing is similar to receipt processing from the [Financial Transaction](FinancialTransaction.md)
-section, with one difference that we will also call `action_function_call` which will do the following:
+El recibo creado en el fragmento que aloja a `alice_near` eventualmente llegará al fragmento que aloja a la cuenta `travel_agency`.
+Será procesado en `Runtime::apply` que revisará que el recibo no tenga dependencias de datos (que es el caso porque esta llamada
+de función no es un método callback) y llamará a `Runtime::apply_action_receipt`.
+En este punto el procesamiento del recibo es similar al procesamiento de recibos que se ve en la sección [Transacciones Financieras](FinancialTransaction.md),
+con la diferencia de que aquí llamaremos a `action_function_call` y este hará lo siguiente:
 
-- Retrieve the Wasm code of the smart contract (either from the database or from the cache);
-- Initialize runtime context through `VMContext` and create `RuntimeExt` which provides access to the trie when the smart contract
-  call the storage API. Specifically `"{\"city\": \"Venice\", \"date\": 20191201}"` arguments will be set in `VMContext`.
-- Calls `near_vm_runner::run` which does the following:
-  - Inject gas, stack, and other kinds of metering;
-  - Verify that Wasm code does not use floats;
-  - Checks that bindings API functions that the smart contract is trying to call are actually those provided by `near_vm_logic`;
-  - Compiles Wasm code into the native binary;
-  - Calls `reserve_trip` on the smart contract.
-    - During the execution of the smart contract it will at some point call `promise_create` and `promise_then`, which will
-      call method on `RuntimeExt` that will record that two promises were created and that the second one should
-      wait on the first one. Specifically, `promise_create` will call `RuntimeExt::create_receipt(vec![], "hotel_near")`
-      returning `0` and then `RuntimeExt::create_receipt(vec![0], "travel_agency")`;
-- `action_function_call` then collects receipts from `VMContext` along with the execution result, logs, and information
-  about used gas;
-- `apply_action_receipt` then goes over the collected receipts from each action and returns them at the end of `Runtime::apply` together with
-  other receipts.
+- Recuperar el código Wasm del contrato inteligente (puede ser de la base de datos o del cache);
+- Inicializa el contexto de tiempo de ejecución `VMContext` y crea `RuntimeExt` que provee el acceso al trie cuando el contrato inteligente
+  llama al API del almacenamiento. Específicamente los argumentos `"{\"city\": \"Venice\", \"date\": 20191201}"` serán establecidos en `VMContext`.
+- Llama a `near_vm_runner::run` que hace lo siguiente:
+  - Inyecta gas, pilas y otras formas de medición;
+  - Verifica que el código Wasm no usa valores flotantes;
+  - Revisa que los enlaces de funciones API que el contrato inteligente está tratando de llamar son aquellos que `near_vm_logic` proporcionó;
+  - Compila el código Wasm a un binario nativo;
+  - Llama a `reserve_trip` en el contrato inteligente.
+    - Durante la ejecución del contrato inteligente, en algún punto, se llamará a `promise_create` y a `promise_then`, que llamará
+      al método en `RuntimeExt` que registrará esas dos promesas fueron creadas y que la segunda debe
+      esperar a la primera. Específicamente, `promise_create` llamará a `RuntimeExt::create_receipt(vec![], "hotel_near")`
+      regresando `0` y después a `RuntimeExt::create_receipt(vec![0], "travel_agency")`;
+- Después `action_function_call` recolecta los recibos de `VMContext` junto con el resultado de la ejecución, logs e información
+  del gas usado;
+- Luego `apply_action_receipt` repasa los recibos recolectados de cada acción y los regresa al final de `Runtime::apply` junto con
+  otros recibos.
 
-## Processing the `reserve` receipt
+## Procesando el recibo `reserve`
 
-This receipt will have `output_data_receivers` with one element corresponding to the receipt that calls `hotel_reservation_complete`,
-which will tell the runtime that it should create `DataReceipt` and send it towards `travel_agency` once the execution of `reserve(date: u64)` is complete.
+Este recibo tendrá `output_data_receivers` con un elemento que corresponde al recibo que llama a `hotel_reservation_complete`,
+que le dirá al tiempo de ejecución que debe de crear un `DataReceipt` y enviarlo hacia `travel_agency` una vez que la ejecución de `reserve(date: u64)` fue completada.
 
-The rest of the smart contract execution is similar to the above.
+El resto de la ejecución del contrato inteligente es similar a la anterior.
 
-## Processing the `hotel_reservation_complete` receipt
+## Procesando el recibo `hotel_reservation_complete`
 
-Upon receiving the `hotel_reservation_complete` receipt the runtime will notice that its `input_data_ids` is not empty
-which means that it cannot be executed until `reserve` receipt is complete. It will store the receipt in the trie together
-with the counter of how many `DataReceipt` it is waiting on.
+Al recibir el recibo `hotel_reservation_complete` el tiempo de ejecución notará que su `input_data_ids` no está vacío
+lo que significa que no puede ser ejecutado hasta que el recibo `reserve` sea completado. El recibo será guardado en el trie junto
+con el contador de cuantos `DataReceipt` está esperando.
 
-It will not call the Wasm smart contract at this point.
+En este punto no llamará al contrato inteligente Wasm.
 
-## Processing the `DataReceipt`
+## Procesando el `DataReceipt`
 
-Once the runtime receives the `DataReceipt` it takes the receipt with `hotel_reservation_complete` function call
-and executes it following the same execution steps as with the `reserve_trip` receipt.
+Una vez que el tiempo de ejecución recibe el `DataReceipt`, toma el recibo con la llamada de función `hotel_reservation_complete`
+y ejecuta siguiendo los mismos pasos de ejecución que el recibo `reserve_trip`.
