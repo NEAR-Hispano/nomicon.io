@@ -93,7 +93,7 @@ Específicamente hace las siguientes revisiones:
 - Deduce los tokens y el gas del balance de `alice_near`, usando el precio actual del gas;
 - Revisa si después de todas estas operaciones la cuenta tiene el balance suficienta para pagar por la renta de los siguientes bloques
   (una constante enconómica definida por el Protocolo Near). De lo contrario la cuenta estará libre para una eliminación inmediata, cosa que no queremos;
-- Actualiza la cuenta `alice_near` con el balance nuevo y usa las llaves de acceso usadoc con un nonce nuevo;
+- Actualiza la cuenta alice_near con el nuevo saldo y la clave de acceso usada con el nuevo nonce;
 - Calcula la recompensa que debe ser pagada a los validadores por el gas quemado.
 
 Si alguna de las operaciones falla, se revertirán todos los cambios.
