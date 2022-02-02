@@ -6,7 +6,7 @@ Este documento debe servir como referencia para que todos los clientes implement
 
 ## Mensajes
 
-Estructuras de datos usados para los mensajes entre pares están enumeradas en [Mensajes](Messages.md).
+Estructuras de datos usados para los mensajes entre pares están enumerados en [Mensajes](Messages.md).
 
 ## Descubriendo la red
 
