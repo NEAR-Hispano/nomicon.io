@@ -12,7 +12,7 @@ En esta sección hablaremos acerca del escenario anterior más simple.
 ## Pre-requisitos
 
 Para que esto funcione Alice y Bob necesitan tener _cuentas_ y un acceso a ellas a través de
-_las llaves de acceso completas_.
+_las llaves de acceso completo.
 
 Supongamos que Alices tiene la cuenta `alice_near` y Bob tiene la cuenta `bob_near`. También, hace ya tiempo,
 cada uno de ellos creó una public-secret key-pair (par de llaves públicas-privadas), guardó la llave secreta en algún lugar (e.j. en una aplicación de billetera)
