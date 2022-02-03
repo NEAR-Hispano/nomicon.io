@@ -120,4 +120,4 @@ La primera versión (`1.0.0`) tenía un lenguaje confuso en relación a los camp
 - `starts_at`
 - `updated_at`
 
-Le dió a esos campos el tipo `string|null` pero no estaba claro si debería de ser un epoch Unix en milisegundos o [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html). Al tener que revisitar esto, se determinó que usar milisegundos epoch era lo más eficiente ya que reducirá el cálculo en el contrato inteligente y puede ser derivado trivialmente de la marca de tiempo del bloque.
+Se le dió a esos campos el tipo `string|null` pero no estaba claro si debería de ser un epoch Unix en milisegundos o [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html). Al tener que revisitar esto, se determinó que usar milisegundos epoch era lo más eficiente ya que reducirá el cálculo en el contrato inteligente y puede ser derivado trivialmente de la marca de tiempo del bloque.
