@@ -274,7 +274,7 @@ El siguiente comportamiento es requerido, pero los autores de los contratos tal 
 ```ts
 // Finalice una cadena `ft_transfer_call` de llamadas cross-contract.
 //
-// El proceso `ft_transfer_call`:
+// `ft_transfer_call` procesa:
 //
 // 1. El remitente llama a `ft_transfer_call` en el contrato FT
 // 2. El contrato FT transfiere `amount` tokens del remitente al receptor
@@ -285,8 +285,8 @@ El siguiente comportamiento es requerido, pero los autores de los contratos tal 
 //
 // Requerimientos:
 // * El contrato DEBE prohibir las llamadas a esta función por cualquier cuenta excepto la propia
-// * Si la cadena de promesa falló, el contrato DEBE revertir la transferencia del token
-// * Si la cadena de promesa se resuelve con una cantidad distinta de cero regresada como una cadena,
+// * Si la cadena de promesas falló, el contrato DEBE revertir la transferencia del token
+// * Si la cadena de promesas se resuelve con una cantidad distinta de cero regresada como una cadena,
 //   el contrato DEBE devolver esta cantidad de tokens a `sender_id`
 //
 // Argumentos:
