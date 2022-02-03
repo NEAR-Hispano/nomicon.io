@@ -1,62 +1,63 @@
-# Non-Fungible Token Metadata ([NEP-177](https://github.com/near/NEPs/discussions/177))
+# Metadatos de Token No Fungible ([NEP-177](https://github.com/near/NEPs/discussions/177))
 
 Version `2.0.0`
 
-## Summary
+## Resumen
 
-An interface for a non-fungible token's metadata. The goal is to keep the metadata future-proof as well as lightweight. This will be important to dApps needing additional information about an NFT's properties, and broadly compatible with other token standards such that the [NEAR Rainbow Bridge](https://near.org/blog/eth-near-rainbow-bridge/) can move tokens between chains.
+Una interface para los metadatos de tokens no fungibles. La meta es mantener los metadatos a prueba del futuro así como ligeros. Esto será importante para las dApps que necesiten información adicional acerca de las propiedades de un NFT, y ampliamente compatible con otro estándares de tokens tal que el [NEAR Rainbow Bridge](https://near.org/blog/eth-near-rainbow-bridge/) pueda mover tokens entre cadenas.
 
-## Motivation
+## Motivación
 
-The primary value of non-fungible tokens comes from their metadata. While the [core standard](Core.md) provides the minimum interface that can be considered a non-fungible token, most artists, developers, and dApps will want to associate more data with each NFT, and will want a predictable way to interact with any NFT's metadata.
+El valor principal de los tokens no fungibles proviene de sus metadatos. Mientras que el [estándar básico](Core.md) proporciona la interface mínima que puede ser cosiderada un token no fungible, la mayoría de artistas, desarrolladores, y dApps querrán asociar más datos con cada NFT, y querrán una manera predecirble de interactuar con cualquier metadato de un NFT.
 
-NEAR's unique [storage staking](https://docs.near.org/docs/concepts/storage-staking) approach makes it feasible to store more data on-chain than other blockchains. This standard leverages this strength for common metadata attributes, and provides a standard way to link to additional offchain data to support rapid community experimentation.
+El enfoque único de NEAR [stakeo de almacenamiento](https://docs.near.org/docs/concepts/storage-staking) hace feasible el almacenar más información on-chain que otras blockchains.
+Este estándar aprovecha esta fortaleza para atributos de metadatos comunes, y proporciona una manera estandarizada para enlazar información adicional off-chain para soportar la experimentación rápida de la comunidad.
 
-This standard also provides a `spec` version. This makes it easy for consumers of NFTs, such as marketplaces, to know if they support all the features of a given token.
+Este estándar también provee una versión `spec`. Esto hace fácil para los consumidores de NFTs, como los marketplaces, el saber si soportan todas las características del token dado.
 
-Prior art:
+Estado de la técnica:
 
-- NEAR's [Fungible Token Metadata Standard](../FungibleToken/Metadata.md)
-- Discussion about NEAR's complete NFT standard: #171
+- [Estándar de metadatos de tokens fungibles](../FungibleToken/Metadata.md) de NEAR
+- Discusión sobre el estándar NFT completo de NEAR: #171
 
 ## Interface
 
-Metadata applies at both the contract level (`NFTContractMetadata`) and the token level (`TokenMetadata`). The relevant metadata for each:
+Los metadatos implementan el nivel contrato (`NFTContractMetadata`) y el nivel token (`TokenMetadata`). Los metadatos relevantes para cada uno:
 
 ```ts
 type NFTContractMetadata = {
-  spec: string, // required, essentially a version like "nft-1.0.0"
-  name: string, // required, ex. "Mochi Rising — Digital Edition" or "Metaverse 3"
-  symbol: string, // required, ex. "MOCHI"
-  icon: string|null, // Data URL
-  base_uri: string|null, // Centralized gateway known to have reliable access to decentralized storage assets referenced by `reference` or `media` URLs
-  reference: string|null, // URL to a JSON file with more info
-  reference_hash: string|null, // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
+  spec: string, // requerido, esencialmente una versión como "nft-1.0.0"
+  name: string, // requerido, ej. "Mochi Rising — Digital Edition" o "Metaverse 3"
+  symbol: string, // requirido, ej. "MOCHI"
+  icon: string|null, // URL de datos
+  base_uri: string|null, // Puerta de enlace centralizada conocida para tener un acceso confiable a los activos de almacenamiento descentralizado a los que hace referencia por `reference` or URLs `media`
+  reference: string|null, // URL a archivo JSON con más información
+  reference_hash: string|null, // Hash sha256 codificado en Base64 de JSON del campo de referencia. Obligatorio si se incluye `reference`.
 }
 
 type TokenMetadata = {
-  title: string|null, // ex. "Arch Nemesis: Mail Carrier" or "Parcel #5055"
-  description: string|null, // free-form description
-  media: string|null, // URL to associated media, preferably to decentralized, content-addressed storage
-  media_hash: string|null, // Base64-encoded sha256 hash of content referenced by the `media` field. Required if `media` is included.
-  copies: number|null, // number of copies of this set of metadata in existence when token was minted.
-  issued_at: number|null, // When token was issued or minted, Unix epoch in milliseconds
-  expires_at: number|null, // When token expires, Unix epoch in milliseconds
-  starts_at: number|null, // When token starts being valid, Unix epoch in milliseconds
-  updated_at: number|null, // When token was last updated, Unix epoch in milliseconds
-  extra: string|null, // anything extra the NFT wants to store on-chain. Can be stringified JSON.
-  reference: string|null, // URL to an off-chain JSON file with more info.
-  reference_hash: string|null // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
+  title: string|null, // ej. "Arch Nemesis: Mail Carrier" or "Parcel #5055"
+  description: string|null, // descripción de formato libre
+  media: string|null, // URL a medios asociados, preferiblemente a almacenamiento descentralizado dirigido a contenido
+  media_hash: string|null, // Hash sha256 codificado en Base64 de JSON del campo de referencia. Obligatorio si se incluye `reference`.
+  copies: number|null, // número de copias del conjunto de metadatos en existencia cuando el token fue minteado.
+  issued_at: number|null, // Cuando el token fue emitido o minteado, un epoch Unix en milisegundos
+  expires_at: number|null, // Cuando el token expira, un epoch Unix en milisegundos
+  starts_at: number|null, // Cuando el token empieza a ser válido, un epoch Unix en milisegundos
+  updated_at: number|null, // Cuando el token fue actualizado por última vez, un epoch Unix en milisegundos
+  extra: string|null, // cualquier cosa extra que el NFT quiera guardar on-chain. Puede ser un JSON con formato de cadena.
+  reference: string|null, // URL hacia un archivo JSON off-chain con más información
+  reference_hash: string|null // Hash sha256 codificado en Base64 de JSON del campo de referencia. Obligatorio si se incluye `reference`.
 }
 ```
 
-A new function MUST be supported on the NFT contract:
+Una nueva función DEBE de ser soportada en el contrato del NFT:
 
 ```ts
 function nft_metadata(): NFTContractMetadata {}
 ```
 
-A new attribute MUST be added to each `Token` struct:
+Un atributo nuevo DEBE de ser agregado a cada estructura `Token`:
 
 ```diff
  type Token = {
@@ -66,57 +67,57 @@ A new attribute MUST be added to each `Token` struct:
  }
 ```
 
-### An implementing contract MUST include the following fields on-chain
+### Un contrato de implementación DEBE incluir los siguientes campos on-chain
 
-- `spec`: a string that MUST be formatted `nft-1.0.0` to indicate that a Non-Fungible Token contract adheres to the current versions of this Metadata spec. This will allow consumers of the Non-Fungible Token to know if they support the features of a given contract.
-- `name`: the human-readable name of the contract.
-- `symbol`: the abbreviated symbol of the contract, like MOCHI or MV3
-- `base_uri`: Centralized gateway known to have reliable access to decentralized storage assets referenced by `reference` or `media` URLs. Can be used by other frontends for initial retrieval of assets, even if these frontends then replicate the data to their own decentralized nodes, which they are encouraged to do.
+- `spec`: una cadena que DEBE tener el formato `nft-1.0.0` para indicar que un contrato de Token No Fungible  se adhiere a las versiones actuales de esta especificación de Metadatos. Esto permitirá a los consumidores de los Tokens No Fungibles el saber si soportan las caracterísitcas de un contrato dado.
+- `name`: el nombre legible por humanos del token.
+- `symbol`: el símbolo abreviado del contrato, como MOCHI o MV3
+- `base_uri`: Puerta centralizada conocida para tener un acceso confiable a los activos de almacenamiento descentralizado a los que hace referencia `reference` o `media`. Puede ser usado por otras interfaces para la recuperación inicial de activos, incluso si estos frontends después replican los datos a sus propies nodos descentralizados, que se les recomienda hacer.
 
-### An implementing contract MAY include the following fields on-chain
+### Un contrato de implementación puede incluír los siguientes campos on-chain
 
-For `NFTContractMetadata`:
+Para `NFTContractMetadata`:
 
-- `icon`: a small image associated with this contract. Encouraged to be a [data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs), to help consumers display it quickly while protecting user data. Recommendation: use [optimized SVG](https://codepen.io/tigt/post/optimizing-svgs-in-data-uris), which can result in high-resolution images with only 100s of bytes of [storage cost](https://docs.near.org/docs/concepts/storage-staking). (Note that these storage costs are incurred to the contract deployer, but that querying these icons is a very cheap & cacheable read operation for all consumers of the contract and the RPC nodes that serve the data.) Recommendation: create icons that will work well with both light-mode and dark-mode websites by either using middle-tone color schemes, or by [embedding `media` queries in the SVG](https://timkadlec.com/2013/04/media-queries-within-svg/).
-- `reference`: a link to a valid JSON file containing various keys offering supplementary details on the token. Example: "/ipfs/QmdmQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7RgQm", "https://example.com/token.json", etc. If the information given in this document conflicts with the on-chain attributes, the values in `reference` shall be considered the source of truth.
-- `reference_hash`: the base64-encoded sha256 hash of the JSON file contained in the `reference` field. This is to guard against off-chain tampering.
+- `icon`: una pequeña imagen asociada con este token. Debe ser una [URL de datos](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs), para ayudar a los consumidores a mostrarla rápido mientras se protegen los datos del usuario. Recomendación: use [SVG optimizados](https://codepen.io/tigt/post/optimizing-svgs-in-data-uris), que pueden resultar en imágenes de alta resolución con solo cientos de bytes de [costo de almacenamiento](https://docs.near.org/docs/concepts/storage-staking). (Note que estos costos de almacenamiento son incurridos al dueño/desplegador del token, pero que a la vez la consulta de estos íconos es una operación de lectura muy barata y cacheable para todos los consumidores del contrato en los nodos RPC que sirven los datos). Recomendación: cree íconos que funcionen bien con sitios web en modo claro y en modo oscuro, si bien usando esquemas de colores de tono medio, o [incrustando consultas `media` en el SVG](https://timkadlec.com/2013/04/media-queries-within-svg/).
+- `reference`: un enlace a un archivo JSON válido conteniendo varias llaves ofreciendo detalles suplementarios en el token. Ejemplo: "/ipfs/QmdmQXB2mzChmMeKY47C43LxUdg1NDJ5MWcKMKxDu7RgQm", "https://example.com/token.json", etc. Si la información dada en este documento tiene conflictos con los atributos on-chain, los valores en `reference` se considerarán como la fuente de la verdad.
+- `reference_hash`: el hash sha256 codificado en base64 del archivo JSON contenido en el campo `reference`. Esto es para protegerse contra la manipulación off-chain.
 
-For `TokenMetadata`:
+Para `TokenMetadata`:
 
-- `name`:  The name of this specific token.
-- `description`: A longer description of the token.
-- `media`: URL to associated media. Preferably to decentralized, content-addressed storage.
-- `media_hash`: the base64-encoded sha256 hash of content referenced by the `media` field. This is to guard against off-chain tampering.
-- `copies`: The number of tokens with this set of metadata or `media` known to exist at time of minting.
-- `issued_at`: Unix epoch in milliseconds when token was issued or minted (an unsigned 32-bit integer would suffice until the year 2106)
-- `expires_at`: Unix epoch in milliseconds when token expires
-- `starts_at`: Unix epoch in milliseconds when token starts being valid
-- `updated_at`: Unix epoch in milliseconds when token was last updated
-- `extra`: anything extra the NFT wants to store on-chain. Can be stringified JSON.
-- `reference`: URL to an off-chain JSON file with more info.
-- `reference_hash`: Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
+- `name`: El nombre de este token en específico.
+- `description`: Una descripción más larga del token.
+- `media`: La URL asociada a los medios. Preferiblemente a un almacenamiento descentralizado dirigido a contenido.
+- `media_hash`: el hash sha256 codificado en base64 del contenido al que hace referencia el campo `media`. Esto es para protegerse contra la manipulación off-chain.
+- `copies`: El número de tokens con este conjunto de metadatos o `media` que se sabe que existen en el momento del minting.
+- `issued_at`: Un epoch Unix en milisegundos de cuando el token fue emitido o minteado (un entero unsigned de 32-bit será suficiente hasta el año 2106)
+- `expires_at`: Un epoch Unix en milisegundos de cuando el token expire
+- `starts_at`: Un epoch Unix en milisegundos de cuando el token empiece a ser válido
+- `updated_at`: Un epoch Unix en milisegundos de cuando el token fue actualizado por última vez
+- `extra`: cualquier cosa extra que el NFT quiera guardar on-chain. Puede ser un JSON con formato de cadena.
+- `reference`: URL a un archivo JSON off-chain con más información.
+- `reference_hash`: Hash sha256 codificado en Base64 de JSON del campo de referencia. Requerido si `reference` está incluído.
 
-### No incurred cost for core NFT behavior
+### Sin costo incurrido por el comportamiento NFT central
 
-Contracts should be implemented in a way to avoid extra gas fees for serialization & deserialization of metadata for calls to `nft_*` methods other than `nft_metadata` or `nft_token`. See `near-contract-standards` [implementation using `LazyOption`](https://github.com/near/near-sdk-rs/blob/c2771af7fdfe01a4e8414046752ee16fb0d29d39/examples/fungible-token/ft/src/lib.rs#L71) as a reference example.
+Los contratos deberían ser implementados de una manera en la que se eviten tarifas de gas extras por serialización y deserialización de metadatos por llamadas a los métodos `nft_*` que no sean `nft_metadata` o `nft_token`. Vea `near-contract-standards` [implementación usando `LazyOption`](https://github.com/near/near-sdk-rs/blob/c2771af7fdfe01a4e8414046752ee16fb0d29d39/examples/fungible-token/ft/src/lib.rs#L71) como ejemplo de referencia.
 
-## Drawbacks
+## Desventajas
 
-* When this NFT contract is created and initialized, the storage use per-token will be higher than an NFT Core version. Frontends can account for this by adding extra deposit when minting. This could be done by padding with a reasonable amount, or by the frontend using the [RPC call detailed here](https://docs.near.org/docs/develop/front-end/rpc#genesis-config) that gets genesis configuration and actually determine precisely how much deposit is needed.
-* Convention of `icon` being a data URL rather than a link to an HTTP endpoint that could contain privacy-violating code cannot be done on deploy or update of contract metadata, and must be done on the consumer/app side when displaying token data.
-* If on-chain icon uses a data URL or is not set but the document given by `reference` contains a privacy-violating `icon` URL, consumers & apps of this data should not naïvely display the `reference` version, but should prefer the safe version. This is technically a violation of the "`reference` setting wins" policy described above.
+* Cuando este contrato de NFT es creado e incializado, el almacenamiento por token será mayor que una versión NFT Core. Las interfaces pueden dar cuenta de esto agregando depósitos extras mientras se mintea. Esto solo se puede realizar rellenando con una cantida razonable, o con la interface usando la [llamada RPC detallada aquí](https://docs.near.org/docs/develop/front-end/rpc#genesis-config) que obtiene configuraciones génesis y determina precisamente cuanto depósito se necesita.
+* El estándar de que `icon` sea una URL de datos en lugar de un enlace endpoint HTTP que podría contener código que viola la privacidad no puede ser desplegado o actualizado desde los metadatos del contrato, y se debe de hacer en el lado del consumidor/aplicación cuando se muestra los datos del token.
+* Si un ícono on-chain usa una URL de datos o si no está establecido pero el documento dado por reference contiene una URL de un icon que viola la privacidad, los consumidores y aplicaciones de esta información no deberían ingenuamente mostrar la versión de reference y preferir la versión segura. Esto es técnicamente una violación de la política de "reference estableciendo ganancias" descrita anteriormente.
 
-## Future possibilities
+## Posibilidades futuras
 
-- Detailed conventions that may be enforced for versions.
-- A fleshed out schema for what the `reference` object should contain.
+- Estándares detallados podrían ser aplicados para las versiones.
+- Un esquema detallado de lo que debe contener el objeto reference.
 
 ## Errata
 
-The first version (`1.0.0`) had confusing language regarding the fields:
+La primera versión (`1.0.0`) tenía un lenguaje confuso en relación a los campos:
 - `issued_at`
 - `expires_at`
 - `starts_at`
 - `updated_at`
 
-It gave those fields the type `string|null` but it was unclear whether it should be a Unix epoch in milliseconds or [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html). Upon having to revisit this, it was determined to be the most efficient to use epoch milliseconds as it would reduce the computation on the smart contract and can be derived trivially from the block timestamp.
+Le dió a esos campos el tipo `string|null` pero no estaba claro si debería de ser un epoch Unix en milisegundos o [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html). Al tener que revisitar esto, se determinó que usar milisegundos epoch era lo más eficiente ya que reducirá el cálculo en el contrato inteligente y puede ser derivado trivialmente de la marca de tiempo del bloque.
