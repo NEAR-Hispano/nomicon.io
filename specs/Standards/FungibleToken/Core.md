@@ -269,7 +269,6 @@ function ft_balance_of(
 ): string {}
 ```
 
-The following behavior is required, but contract authors may name this function something other than the conventional `ft_resolve_transfer` used here.
 El siguiente comportamiento es requerido, pero los autores de los contratos tal vez llamen a esta función de diferente a la manera estandarizada `ft_resolve_transfer` como se usa aquí:
 
 ```ts
