@@ -1,78 +1,80 @@
-# Non-Fungible Token ([NEP-171](https://github.com/near/NEPs/discussions/171))
+# Token no fungible ([NEP-171](https://github.com/near/NEPs/discussions/171))
 
-Version `1.0.0`
+Versión `1.0.0`
 
-## Summary
+## Resumen
 
-A standard interface for non-fungible tokens (NFTs). That is, tokens which each have a unique ID.
+Una interface estándar para los tokens no fungibles (NFTs). 
+A standard interface for non-fungible tokens (NFTs). Es decir, tokens que tienen cada uno una identificación única.
 
-## Motivation
+## Motivación
 
-In the three years since [ERC-721] was ratified by the Ethereum community, Non-Fungible Tokens have proven themselves as an incredible new opportunity across a wide array of disciplines: collectibles, art, gaming, finance, virtual reality, real estate, and more.
+En los tres años desde que [ERC-721] fue ratificado por la comunidad de Ethereum, los Tokens No Fungibles se han probado como una increíble oportunidad nueva a través de una amplia gama de disciplinas: coleccionables, arte, videojuegos, finanzas, realidad virtual, bienes raíces, y más.
 
-This standard builds off the lessons learned in this early experimentation, and pushes the possibilities further by harnessing unique attributes of the NEAR blockchain:
+Este estándar construye las lecciones aprendidas por la experimentación temprana, y empuja las posibilidades más allá aprovechando los atributos únicos de la blockchain de NEAR:
 
-- an asynchronous, sharded runtime, meaning that two contracts can be executed at the same time in different shards
-- a [storage staking] model that separates [gas] fees from the storage demands of the network, enabling greater on-chain storage (see [Metadata] extension) and ultra-low transaction fees
+- un tiempo de ejecución asíncromo y fragmentado, significando que dos contratos pueden ser ejecutados al mismo tiempo en diferentes fragmentos
+- un modelo de [participación de almacenamiento] que separa las tarifas del [gas] de las demandas que tiene el almacenamiento a la red, permitiendo un almacenamiento on-chain más grande (vea la extensión [Metadata]) y tarifas de transacción ultra bajas.
 
-Given these attributes, this NFT standard can accomplish with one user interaction things for which other blockchains need two or three. Most noteworthy is `nft_transfer_call`, by which a user can essentially attach a token to a call to a separate contract. An example scenario:
+Dados estos atributos, este estándar NFT puede cimplir con una interacción de usuario lo que otras blockchains necesitan en dos o tres. Lo más notable es `nft_transfer_call`, por el cual un usuario puede esencialmente adjuntar un token a una llamada a un contrato separado. Un escenario de ejemplo:
 
-* An [Exquisite Corpse](https://en.wikipedia.org/wiki/Exquisite_corpse) contract allows three drawings to be submitted, one for each section of a final composition, to be minted as its own NFT and sold on a marketplace, splitting royalties amongst the original artists.
-* Alice draws the top third and submits it, Bob the middle third, and Carol follows up with the bottom third. Since they each use `nft_transfer_call` to both transfer their NFT to the Exquisite Corpse contract as well as call a `submit` method on it, the call from Carol can automatically kick off minting a composite NFT from the three submissions, as well as listing this composite NFT in a marketplace.
-* When Dan attempts to also call `nft_transfer_call` to submit an unneeded top third of the drawing, the Exquisite Corpse contract can throw an error, and the transfer will be rolled back so that Bob maintains ownership of his NFT.
+* Un contrato [Cadáver Exquisito](https://es.wikipedia.org/wiki/Cad%C3%A1ver_exquisito) permite tres enviar tres dibujos, uno para cada sección de una composición final, para ser minteado como su propio NFT y ser vendido en un marketplace, dividiendo las ganancias entre los artistas originales.
+* Alice dibuja el tercio superior y lo envía, Bob el tercio de en medio, y Carol termina con el tercio inferior. Como ellos pueden usar `nft_transfer_call` para transferir su NFT al contrato Cadáver Exquisito así como también llamar al método `submit` en él, la llamada de Carol puede automáticamente arrancar el minteo de un NFT compuesto de los tres envíos, así como también listar este NFT compuesto en un marketplace.
+* Cuando Dan intenta también llamar `nft_transfer_call` para enviar un tercio superior innecesario del dibujo, el contrato Cadáver Exquisito puede arrojar un error, y la transferencia será revertida para que así Bob mantenga la propiedad de su NFT.
 
-While this is already flexible and powerful enough to handle all sorts of existing and new use-cases, apps such as marketplaces may still benefit from the [Approval Management] extension.
+Mientras esto ya es flexible y suficientemente poderoso para manejar todos los tipos de casos de uso nuevos y existentes, las aplicaciones como los marketplaces pueden todavía beneficiarse de la extensión [Gestión de Aprobación].
 
-Prior art:
+Estado de la técnica:
 
 - [ERC-721]
 - [EIP-1155 for multi-tokens](https://eips.ethereum.org/EIPS/eip-1155#non-fungible-tokens)
-- [NEAR's Fungible Token Standard](../FungibleToken/Core.md), which first pioneered the "transfer and call" technique
+- [NEAR's Fungible Token Standard](../FungibleToken/Core.md), que fue el pionero de la técnica "transfer and call"
 
-## Reference-level explanation
+## Explicación a nivel referencia
 
-**NOTES**:
-- All amounts, balances and allowance are limited by `U128` (max value `2**128 - 1`).
-- Token standard uses JSON for serialization of arguments and results.
-- Amounts in arguments and results are serialized as Base-10 strings, e.g. `"100"`. This is done to avoid JSON limitation of max integer value of `2**53`.
-- The contract must track the change in storage when adding to and removing from collections. This is not included in this core fungible token standard but instead in the [Storage Standard](../StorageManagement.md).
-- To prevent the deployed contract from being modified or deleted, it should not have any access keys on its account.
+**NOTAS**:
+- Todos los montos, balances y allowances están limitados por `U128` (valor máximo de `2**128 - 1`).
+- El estándar del token usa JSON para la serialización de argumentos y resultados.
+- Los montos en los argumentos y resultados son serializados en strings de Base-10, e.j. `"100"`. Esto se hace para evitar la limitación de JSON del valor entero máximo de `2**53`. 
+- El contrato debe de monitorear el cambio en el almacenamiento cuando se agrega o remueve de las colecciones. Esto no está incluído en este estándar básico de token fungible, pero sí está en el [Estándar de Almacenamiento](../StorageManagement.md).
+- Para prevenir al contrato desplegado de ser modificado o eliminar, no debe tener ninguna clave de acceso en su cuenta.
 
-### NFT Interface
+### Interface NFT
 
 ```ts
-// The base structure that will be returned for a token. If contract is using
+// La estructura base que será regresada por un token. Si un contrato está usando
 // extensions such as Approval Management, Metadata, or other
-// attributes may be included in this structure.
+// extenciones como Gestión de Aprobación, Metadata u otros
+// atributos pueden ser incluídos en esta estructura
 type Token = {
   id: string,
   owner_id: string,
 }
 
-/******************/
-/* CHANGE METHODS */
-/******************/
+/*********************/
+/* MÉTODOS DE CAMBIO */
+/*********************/
 
-// Simple transfer. Transfer a given `token_id` from current owner to
-// `receiver_id`.
+// Transferencia simple. Transfiere un `token_ida` dado por el dueño actual
+// al `receiver_id`.
 //
-// Requirements
-// * Caller of the method must attach a deposit of 1 yoctoⓃ for security purposes
-// * Contract MUST panic if called by someone other than token owner or,
-//   if using Approval Management, one of the approved accounts
-// * `approval_id` is for use with Approval Management extension, see
-//   that document for full explanation.
-// * If using Approval Management, contract MUST nullify approved accounts on
-//   successful transfer.
+// Requerimientos
+// * El llamante del método debe adjuntar un depósito de 1 yoctoⓃ por motivos de seguridad
+// * El contrato DEBE entrar en pánico si lo llama alguien que no sea el propietario del token o,
+//   si utiliza Gestión de Aprobación, una de las cuentas aprobadas
+// * `approval_id` es para usar con la extensión de Gestión de Aprobaciones, vea
+//   ese documento para la explicación completa.
+// * Si utiliza la gestión de aprobación, el contrato DEBE anular las cuentas aprobadas en
+//   en la transferencia exitosa.
 //
-// Arguments:
-// * `receiver_id`: the valid NEAR account receiving the token
-// * `token_id`: the token to transfer
-// * `approval_id`: expected approval ID. A number smaller than
-//    2^53, and therefore representable as JSON. See Approval Management
-//    standard for full explanation.
-// * `memo` (optional): for use cases that may benefit from indexing or
-//    providing information for a transfer
+// Argumentos:
+// * `receiver_id`: la cuenta NEAR válida que recibe el token
+// * `token_id`: el token a transferir
+// * `approval_id`: ID de aprobación esperado. Un número menor que
+//    2^53 y, por lo tanto, representable como JSON. Consulte el estándar Gestión 
+//    de Aprobaciones para una explicación completa.
+// * `memo` (opcional): para casos de uso que pueden beneficiarse de la indexación o
+//    el suministro de información para una transferencia
 function nft_transfer(
   receiver_id: string,
   token_id: string,
@@ -80,41 +82,40 @@ function nft_transfer(
   memo: string|null,
 ) {}
 
-// Returns `true` if the token was transferred from the sender's account.
+// Devuelve `true` si el token se transfirió desde la cuenta del remitente.
 
-// Transfer token and call a method on a receiver contract. A successful
-// workflow will end in a success execution outcome to the callback on the NFT
-// contract at the method `nft_resolve_transfer`.
+// Transfiere el token y llama a un método en un contrato receptor. Un flujo
+// terminará con un resultado de ejecución exitoso al callback dentro del contrato NFT
+// en el método `nft_resolve_transfer`.
 //
-// You can think of this as being similar to attaching native NEAR tokens to a
-// function call. It allows you to attach any Non-Fungible Token in a call to a
-// receiver contract.
+// Puede pensar que esto es similar a adjuntar tokens NEAR nativos a una
+// llamada de función. Le permite adjuntar cualquier token no fungible en una llamada a
+// un contrato de receptor.
 //
 // Requirements:
-// * Caller of the method must attach a deposit of 1 yoctoⓃ for security
-//   purposes
-// * Contract MUST panic if called by someone other than token owner or,
-//   if using Approval Management, one of the approved accounts
-// * The receiving contract must implement `nft_on_transfer` according to the
-//   standard. If it does not, FT contract's `nft_resolve_transfer` MUST deal
-//   with the resulting failed cross-contract call and roll back the transfer.
-// * Contract MUST implement the behavior described in `nft_resolve_transfer`
-// * `approval_id` is for use with Approval Management extension, see
-//   that document for full explanation.
-// * If using Approval Management, contract MUST nullify approved accounts on
-//   successful transfer.
+// * El llamante del método debe adjuntar un depósito de 1 yoctoⓃ por motivos de seguridad
+// * El contrato DEBE entrar en pánico si lo llama alguien que no sea el propietario del token o,
+//   si utiliza Gestión de Aprobación, una de las cuentas aprobadas
+// * El contrato receptor DEBE implementar `nft_on_transfer` acorde al
+//   estándar. Si no lo hace, `nft_resolve_transfer` del contrato de TF debe lidiar
+//   con la llamada cross-contrato fallida y revertir la transferencia.
+// * El contrato DEBE implementar el comportamiento descrito en `nft_resolve_transfer`
+// * `approval_id` es para usarse con la extensión Gestión de Aprobación, vea
+//   ese documento para una explicación completa.
+// * Si se usa Gestión de Aprobación, el contrato DEBE anular las cuentas aprovadas
+//   en una transferencia exitosa.
 //
 // Arguments:
-// * `receiver_id`: the valid NEAR account receiving the token.
-// * `token_id`: the token to send.
-// * `approval_id`: expected approval ID. A number smaller than
-//    2^53, and therefore representable as JSON. See Approval Management
-//    standard for full explanation.
-// * `memo` (optional): for use cases that may benefit from indexing or
-//    providing information for a transfer.
-// * `msg`: specifies information needed by the receiving contract in
-//    order to properly handle the transfer. Can indicate both a function to
-//    call and the parameters to pass to that function.
+// * `receiver_id`: la cuenta NEAR válida que recibe el token
+// * `token_id`: el token a transferir
+// * `approval_id`: ID de aprobación esperado. Un número menor que
+//    2^53 y, por lo tanto, representable como JSON. Consulte el estándar Gestión 
+//    de Aprobaciones para una explicación completa.
+// * `memo` (opcional): para casos de uso que pueden beneficiarse de la indexación o
+//    el suministro de información para una transferencia.
+// * `msg`: especifica la información necesaria para el contrato receptor para
+//    así manejar adecuadamente la transferencia. Puede indicar una función a
+//    llamar y los parámetros a pasar a esa función.
 function nft_transfer_call(
   receiver_id: string,
   token_id: string,
@@ -132,35 +133,35 @@ function nft_transfer_call(
 function nft_token(token_id: string): Token|null {}
 ```
 
-The following behavior is required, but contract authors may name this function something other than the conventional `nft_resolve_transfer` used here.
+El siguiente comportamiento es requerido, pero los autores de los contratos tal vez llamen a esta función de diferente manera a la estandarizada `nft_resolve_transfer` como se usa aquí:
 
 ```ts
-// Finalize an `nft_transfer_call` chain of cross-contract calls.
+// Finalice una cadena `nft_transfer_call` de llamadas cross-contract.
 //
-// The `nft_transfer_call` process:
+// `ft_transfer_call` procesa:
 //
-// 1. Sender calls `nft_transfer_call` on NFT contract
-// 2. NFT contract transfers token from sender to receiver
-// 3. NFT contract calls `nft_on_transfer` on receiver contract
-// 4+. [receiver contract may make other cross-contract calls]
-// N. NFT contract resolves promise chain with `nft_resolve_transfer`, and may
-//    transfer token back to sender
+// 1. El remitente llama a `nft_transfer_call` en el contrato NFT
+// 2. El contrato NFT transfiere `amount` tokens del remitente al receptor
+// 3. El contrato NFT llama a `nft_on_transfer` en el contrato del receptor
+// 4+. [el contrato receptor puede hacer otras llamadas cross-contract]
+// N. El contrato NFT resuelve la cadena de promesas con `nft_resolve_transfer`, y podría
+//    transferir el token de vuelta al remitente
 //
-// Requirements:
-// * Contract MUST forbid calls to this function by any account except self
-// * If promise chain failed, contract MUST revert token transfer
-// * If promise chain resolves with `true`, contract MUST return token to
-//   `sender_id`
+// Requerimientos:
+// * El contrato DEBE prohibir las llamadas a esta función por cualquier cuenta excepto la propia
+// * Si la cadena de promesas falló, el contrato DEBE revertir la transferencia del token
+// * Si la cadena de promesas se resuelve con `true`, el contrato DEBE regresar el token
+//   a `sender_id`
 //
-// Arguments:
-// * `sender_id`: the sender of `nft_transfer_call`
-// * `receiver_id`: the `receiver_id` argument given to `nft_transfer_call`
-// * `token_id`: the `token_id` argument given to `nft_transfer_call`
-// * `approved_token_ids`: if using Approval Management, contract MUST provide
-//   set of original approved accounts in this argument, and restore these
-//   approved accounts in case of revert.
+// Argumentos:
+// * `sender_id`: el remitente de `nft_transfer_call`
+// * `receiver_id`: el argumento `receiver_id` dado a `nft_transfer_call`
+// * `token_id`: el argumento `token_id` dado a `nft_transfer_call`
+// * `approved_token_ids`: si se usa Gestión de Aprobación, el contrato DEBE proporcionar
+//   un conjunto de cuentas originales aprobadas en este argumento, y restaurar
+//   estas cuentas aprobadas en caso de reversión.
 //
-// Returns true if token was successfully transferred to `receiver_id`.
+// Regresa true si el token fue transferido exitosamente a `receiver_id`.
 function nft_resolve_transfer(
   owner_id: string,
   receiver_id: string,
@@ -169,25 +170,25 @@ function nft_resolve_transfer(
 ): boolean {}
 ```
 
-### Receiver Interface
+### Interfaz receptora
 
-Contracts which want to make use of `nft_transfer_call` must implement the following:
+Los contratos que quieran hacer uso de `nft_transfer_call` deberán implementar lo siguiente:
 
 ```ts
-// Take some action after receiving a non-fungible token
+// Tomar alguna acción después de recibir un token no fungible
 //
-// Requirements:
-// * Contract MUST restrict calls to this function to a set of whitelisted NFT
-//   contracts
+// Requerimientos:
+// * El contrato deberá restringir las llamadas a esta función a un conjunto de contratos
+//   NFT previamente aceptados
 //
-// Arguments:
-// * `sender_id`: the sender of `nft_transfer_call`
-// * `previous_owner_id`: the account that owned the NFT prior to it being
-//   transfered to this contract, which can differ from `sender_id` if using
-//   Approval Management extension
-// * `token_id`: the `token_id` argument given to `nft_transfer_call`
-// * `msg`: information necessary for this contract to know how to process the
-//   request. This may include method names and/or arguments.
+// Argumentos:
+// * `sender_id`: el remitente de `nft_transfer_call`
+// * `previous_owner_id`: la cuenta que poseía el NFT antes de ser enviado a 
+//   este contrato, que puede diferir de `sender_id` si se usa
+//   Gestión de Aprobación de cuentas
+// * `token_id`: el argumento `token_id` dado a `nft_transfer_call`
+// * `msg`: la información necesaria para que este contrato sepa como procesar la
+//   petición. Esto puede incluir nombres de método y/o argumentos
 //
 // Returns true if token should be returned to `sender_id`
 function nft_on_transfer(
@@ -200,11 +201,11 @@ function nft_on_transfer(
 
 ## Errata
 
-* **2021-07-16**: updated `nft_transfer_call` argument `approval_id` to be type `number|null` instead of `string|null`. As stated, approval IDs are not expected to exceed the JSON limit of 2^53.
+* **2021-07-16**: actualizado el argumento `approval_id` de `nft_transfer_call` para ser de tipo `number|null` en vez de `string|null`. Como ya se dijo, No se espera que los ID de aprobación excedan el límite de JSON de 2^53.
 
   [ERC-721]: https://eips.ethereum.org/EIPS/eip-721
   [storage staking]: https://docs.near.org/docs/concepts/storage-staking
   [gas]: https://docs.near.org/docs/concepts/gas
   [Metadata]: Metadata.md
-  [Approval Management]: ApprovalManagement.md
+  [Gestión de Aprobación]: ApprovalManagement.md
 
