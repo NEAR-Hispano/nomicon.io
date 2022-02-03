@@ -1,150 +1,150 @@
-# Fungible Token ([NEP-141](https://github.com/near/NEPs/issues/141))
+# Token Fungible ([NEP-141](https://github.com/near/NEPs/issues/141))
 
-Version `1.0.0`
+Versión `1.0.0`
 
-## Summary
+## Resumen
 
-A standard interface for fungible tokens that allows for a normal transfer as well as a transfer and method call in a single transaction. The [storage standard](../StorageManagement.md) addresses the needs (and security) of storage staking.
-The [fungible token metadata standard](Metadata.md) provides the fields needed for ergonomics across dApps and marketplaces.
+Una interface estándar para tokens fungibles que acepta transferencias normales así como tambien Una interfaz estándar para tokens fungibles que permite una transferencia normal, así como una llamada de método y transferencia en una sola transacción. El [estándar de almacenamiento](../StorageManagement.md) aborda las necesidades (y la seguridad) del stakeo del almacenamiento.
+El [estándar de metadata de tokens fungibles](Metadata.md) proviciona los campos necesarios para la ergonomía en las dApps y maketplaces.
 
-## Motivation
+## Motivación
 
-NEAR Protocol uses an asynchronous, sharded runtime. This means the following:
- - Storage for different contracts and accounts can be located on the different shards.
- - Two contracts can be executed at the same time in different shards.
+El Protocolo NEAR usa un tiempo de ejecución fragemtado y asíncrono. Esto significa lo siguiente:
+ - El almacenamiento para los diferentes contratos y cuentas pueden ser localizados en los diferentes fragmentos.
+ - Dos contratos pueden ser ejecutados al mismo tiempo en diferentes fragmentos.
 
-While this increases the transaction throughput linearly with the number of shards, it also creates some challenges for cross-contract development. For example, if one contract wants to query some information from the state of another contract (e.g. current balance), by the time the first contract receives the balance the real balance can change. In such an async system, a contract can't rely on the state of another contract and assume it's not going to change.
+Si bien esto aumenta el rendimiento de la transacción de forma lineal con la cantidad de fragmentos, también crea algunos retos para el desarrollo de cross-contratos. Por ejemplo, si un contrato quiere consultar alguna información del estado de otro contato (e.j. balance actual), para el tiempo en el que el primero contrato reciba el balance, el balance real puede cambiar. En un sistema tan asíncrono, un contrato no puede confiar en el estado de otro contrato y asumir que no va a cambiar.
 
-Instead the contract can rely on temporary partial lock of the state with a callback to act or unlock, but it requires careful engineering to avoid deadlocks. In this standard we're trying to avoid enforcing locks. A typical approach to this problem is to include an escrow system with allowances. This approach was initially developed for [NEP-21](https://github.com/near/NEPs/pull/21) which is similar to the Ethereum ERC-20 standard. There are a few issues with using an escrow as the only avenue to pay for a service with a fungible token. This frequently requires more than one transaction for common scenarios where fungible tokens are given as payment with the expectation that a method will subsequently be called.
+Al contrario el contrato puede confiar en un bloqueo parcial temporal del estado con un método callback para actuar o desbloquear, pero requiere una ingeniería cuidadosa para evitar bloqueos mutuos. En este estándar estamos tratando de evitar la aplicación de bloqueos. El abordamiento típico a este problema incluye un sistema escrow con allowances. Este enfoque fue inicialmente desarrollado para [NEP-21](https://github.com/near/NEPs/pull/21) que es similar al estándar ERC-20 de Ethereum. Hay algunos problemas al usar escrow como la única forma de pago por un servicio con token fungible. Esto requiere frecuentemente más de una transacción para escenarios comunes donde los tokens fungibles son dados como pago con la expectativa de que posteriormente un método será llamado.
 
-For example, an oracle contract might be paid in fungible tokens. A client contract that wishes to use the oracle must either increase the escrow allowance before each request to the oracle contract, or allocate a large allowance that covers multiple calls. Both have drawbacks and ultimately it would be ideal to be able to send fungible tokens and call a method in a single transaction. This concern is addressed in the `ft_transfer_call` method. The power of this comes from the receiver contract working in concert with the fungible token contract in a secure way. That is, if the receiver contract abides by the standard, a single transaction may transfer and call a method.
+Por ejemplo, un contrato oracle podría ser pagado con tokens fungibles. Un contrato cliente que desea usar el oracle (oráculo) debe de incrementar el allowance del escrow antes de cada petición al contrato oracle, o alojar un allowance grande que cubra múltiples llamadas. Ambos tienen inconvenientes y últimadamente sería ideal poderenviar tokens fungibles y llamar a un método en una sola transacción. Esta preocupación es abordada en el método `ft_transfer_call`. El poder de esto viene del contrato receptor que trabaja en concierto con el contrato del token fungible en una manera segura. Esto es, si un contrato receptor cumple con el estándar, una sola transacción podría transferir y llamar a un método.
 
-Note: there is no reason why an escrow system cannot be included in a fungible token's implementation, but it is simply not necessary in the core standard. Escrow logic should be moved to a separate contract to handle that functionality. One reason for this is because the [Rainbow Bridge](https://near.org/blog/eth-near-rainbow-bridge/) will be transferring fungible tokens from Ethereum to NEAR, where the token locker (a factory) will be using the fungible token core standard.
+Nota: no hay razón para que un sistema escrow no pueda ser incluído en una implementación de tokens fungibles, pero simplemente no es necesario en el estándar básico. La lógica escrow debería ser movida a un contrato separado para manjear esa funcionalidad. Una razón para eso es porque el [Rainbow Bridge](https://near.org/blog/eth-near-rainbow-bridge/) transferirá tokens fungibles de Ethereum a NEAR, donde el locker de tokens (una fábrica) utilizará el estándar central de tokens fungibles.
 
-Prior art:
+Estado de la técnica:
 
 - [ERC-20 standard](https://eips.ethereum.org/EIPS/eip-20)
-- NEP#4 NEAR NFT standard: [near/neps#4](https://github.com/near/neps/pull/4)
+- Estándar NEP#4 NEAR NFT: [near/neps#4](https://github.com/near/neps/pull/4)
 
-Learn about NEP-141:
+Aprenda sobre NEP-141:
 
 - [Figment Learning Pathway](https://learn.figment.io/network-documentation/near/tutorials/1-project_overview/2-fungible-token)
 
-## Guide-level explanation
+## Explicación a nivel de guía:
 
-We should be able to do the following:
-- Initialize contract once. The given total supply will be owned by the given account ID.
-- Get the total supply.
-- Transfer tokens to a new user.
-- Transfer tokens from one user to another.
-- Transfer tokens to a contract, have the receiver contract call a method and "return" any fungible tokens not used.
-- Remove state for the key/value pair corresponding with a user's account, withdrawing a nominal balance of Ⓝ that was used for storage.
+Debaríamos poder hacer lo siguiente:
+- Inicializar el contrato una vez. El suministro total dado será propiedad del ID de cuento dado.
+- Obtener el suministro total.
+- Tranferir tokens al usuario nuevo.
+- Transferir tokens de un usuario a otro.
+- Transferir tokens a un contrato, tenemos el contrato receptor llamando a un método y "regresa" los tokens fungible no usado.
+- Remueve el estado del par llave/valor correspondiente con la cuenta de un usuario, retirando un balance nominal de Ⓝ que fue usado para el almacenamiento.
 
-There are a few concepts in the scenarios above:
-- **Total supply**: the total number of tokens in circulation.
-- **Balance owner**: an account ID that owns some amount of tokens.
-- **Balance**: an amount of tokens.
-- **Transfer**: an action that moves some amount from one account to another account, either an externally owned account or a contract account.
-- **Transfer and call**: an action that moves some amount from one account to a contract account where the receiver calls a method.
-- **Storage amount**: the amount of storage used for an account to be "registered" in the fungible token. This amount is denominated in Ⓝ, not bytes, and represents the [storage staked](https://docs.near.org/docs/concepts/storage-staking).
+Hay algunos conceptos en los escenarios anteriores:
+- **Suministro total**: el número total de tokens en circulación.
+- **Balance owner**: un ID de cuenta que posee alguna cantidad de tokens. 
+- **Balance**: una cantidad de tokens.
+- **Transferencia**: una acción que mueve un monto de una cuenta a otra, puede ser una cuenta 
+- **Transferencia y llamada**: una acción que mueve una cantidad de una cuenta a una cuenta contrato donde el receptor llama a un método.
+- **Cantidad de almacenamiento**: la cantidad del almacenamiento usado para que una cuenta sea "registrada" en el token fungible. Esta cantidad está denominada en Ⓝ, no en bytes, y representa el [almacenamiento stakeado](https://docs.near.org/docs/concepts/storage-staking).
 
-Note that precision (the number of decimal places supported by a given token) is not part of this core standard, since it's not required to perform actions. The minimum value is always 1 token. See the [Fungible Token Metadata Standard](Metadata.md) to learn how to support precision/decimals in a standardized way.
+Note que la precisión (el número de lugares decimales soportados por un token) no es parte de este estándar básico, ya que no es requerido para realizar acciones. El valor mínimo es siempre 1 token. Vea el [Estándar de metadata de token fungible](Metadata.md) para aprender a admitir precisión/decimales de forma estandarizada.
 
-Given that multiple users will use a Fungible Token contract, and their activity will result in an increased [storage staking](https://docs.near.org/docs/concepts/storage-staking) burden for the contract's account, this standard is designed to interoperate nicely with [the Account Storage standard](../StorageManagement.md) for storage deposits and refunds.
+Dado que múltiples usuarios usarán un contrato de Token Fungible, y su actividad resultará en un [stakeo de almacenamiento](https://docs.near.org/docs/concepts/storage-staking) incrementado para la cuenta del contraro, este estándar está diseñado para interoperar muy bien con [el Estándar de almacenamiento](../StorageManagement.md) para depósitode de almacenamiento y reembolsos.
 
-### Example scenarios
+### Escenarios de ejemplo
 
-#### Simple transfer
+#### Transferencia simple
 
-Alice wants to send 5 wBTC tokens to Bob.
+Alice quiere enviar 5 tokens wBTC a Bob.
 
-**Assumptions**
+**Suposiciones**
 
-- The wBTC token contract is `wbtc`.
-- Alice's account is `alice`.
-- Bob's account is `bob`.
-- The precision ("decimals" in the metadata standard) on wBTC contract is `10^8`.
-- The 5 tokens is `5 * 10^8` or as a number is `500000000`.
+- El contrato de token wBTC es `wbtc`.
+- La cuenta de Alice es `alice`.
+- La cuenta de Bob es `bob`.
+- La precisión ("decimales" en el estándar de metadata) en el contrato wBTC es de `10^8`.
+- Los 5 tokens son `5 * 10^8` o como número son `500000000`.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-Alice needs to issue one transaction to wBTC contract to transfer 5 tokens (multiplied by precision) to Bob.
+Alice necesita emitir una transacción a un contrato wBTC para transferir 5 tokens (multiplicados por la precisión) a Bob.
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. `alice` calls `wbtc::ft_transfer({"receiver_id": "bob", "amount": "500000000"})`.
+1. `alice` llama a `wbtc::ft_transfer({"receiver_id": "bob", "amount": "500000000"})`.
 
-#### Token deposit to a contract
+#### Depósito de tokens a un contrato
 
-Alice wants to deposit 1000 DAI tokens to a compound interest contract to earn extra tokens.
+Alice quiere depositar 1000 tokens DAI a un contrato de interés compuesto para ganar tokens extra.
 
-**Assumptions**
+**Suposiciones**
 
-- The DAI token contract is `dai`.
-- Alice's account is `alice`.
-- The compound interest contract is `compound`.
-- The precision ("decimals" in the metadata standard) on DAI contract is `10^18`.
-- The 1000 tokens is `1000 * 10^18` or as a number is `1000000000000000000000`.
-- The compound contract can work with multiple token types.
+- El contrato de token DAI es `dai`.
+- La cuenta de Alice es `alice`.
+- El interés compuesto del contrato es `compound`.
+- La precisión ("decimales" en el estándar de metadata) en el contrato DAI es de `10^18`.
+- Los 1000 tokens son `1000 * 10^18` o como número son `1000000000000000000000`.
+- El contrato compuesto puede trabajar con múltiples tipos de token.
 
 <details style="background-color: #000; padding: 3px; color: #fff">
-<summary>For this example, you may expand this section to see how a previous fungible token standard using escrows would deal with the scenario.</summary>
+<summary>Para este ejemplo, puede expandir esta sección para ver como un estándar de token fungible anterior que usa escrows lidiaría con el escenario.</summary>
 <hr/>
 
-**High-level explanation** (NEP-21 standard)
+**Explicación de alto nivel** (NEP-21 standard)
 
-Alice needs to issue 2 transactions. The first one to `dai` to set an allowance for `compound` to be able to withdraw tokens from `alice`.
-The second transaction is to the `compound` to start the deposit process. Compound will check that the DAI tokens are supported and will try to withdraw the desired amount of DAI from `alice`.
-- If transfer succeeded, `compound` can increase local ownership for `alice` to 1000 DAI
-- If transfer fails, `compound` doesn't need to do anything in current example, but maybe can notify `alice` of unsuccessful transfer.
+Alice necesita emitir 2 transacciones. La primera a `dai` para establecer un allowance a `compound` para que pueda retirar tokens de `alice`.
+La segunda transacción es para que `compound` empiece el proceso de depósito. Compound revisará que los tokens DAI son soportados y tratará de retirar el monto de DAI deseado de `alice`.
+- Si la transferencia tiene éxito, `compuesto` puede aumentar la propiedad local de `alice` a 1000 DAI.
+- Si la transferencia falla, `compound` no necesita de hacer nada en el ejemplo actual, pero tal vez pueda notificar a `alice` de una transferencia fallida.
 
-**Technical calls** (NEP-21 standard)
+**Llamadas técnicas** (NEP-21 standard)
 
-1. `alice` calls `dai::set_allowance({"escrow_account_id": "compound", "allowance": "1000000000000000000000"})`.
-2. `alice` calls `compound::deposit({"token_contract": "dai", "amount": "1000000000000000000000"})`. During the `deposit` call, `compound` does the following:
-   1. makes async call `dai::transfer_from({"owner_id": "alice", "new_owner_id": "compound", "amount": "1000000000000000000000"})`.
-   2. attaches a callback `compound::on_transfer({"owner_id": "alice", "token_contract": "dai", "amount": "1000000000000000000000"})`.
+1. `alice` llama a `dai::set_allowance({"escrow_account_id": "compound", "allowance": "1000000000000000000000"})`.
+2. `alice` llama a `compound::deposit({"token_contract": "dai", "amount": "1000000000000000000000"})`. Dueante la llamada `deposit`, `compound` hace lo siguiente:
+   1. hace una llamada asíncrona a `dai::transfer_from({"owner_id": "alice", "new_owner_id": "compound", "amount": "1000000000000000000000"})`.
+   2. liga un callback a `compound::on_transfer({"owner_id": "alice", "token_contract": "dai", "amount": "1000000000000000000000"})`.
 <hr/>
 </details>
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-Alice needs to issue 1 transaction, as opposed to 2 with a typical escrow workflow.
+Alice necesita emitir una transacción, a diferencia del típico flujo de trabajo escrow que emite 2.
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. `alice` calls `dai::ft_transfer_call({"receiver_id": "compound", "amount": "1000000000000000000000", "msg": "invest"})`. During the `ft_transfer_call` call, `dai` does the following:
-   1. makes async call `compound::ft_on_transfer({"sender_id": "alice", "amount": "1000000000000000000000", "msg": "invest"})`.
-   2. attaches a callback `dai::ft_resolve_transfer({"sender_id": "alice", "receiver_id": "compound", "amount": "1000000000000000000000"})`.
-   3. compound finishes investing, using all attached fungible tokens `compound::invest({…})` then returns the value of the tokens that weren't used or needed. In this case, Alice asked for the tokens to be invested, so it will return 0. (In some cases a method may not need to use all the fungible tokens, and would return the remainder.)
-   4. the `dai::ft_resolve_transfer` function receives success/failure of the promise. If success, it will contain the unused tokens. Then the `dai` contract uses simple arithmetic (not needed in this case) and updates the balance for Alice.
+1. `alice` llama a `dai::ft_transfer_call({"receiver_id": "compound", "amount": "1000000000000000000000", "msg": "invest"})`. Durante la llamada `ft_transfer_call`, dai hace lo siguiente:
+   1. hace una llamada asíncrona a `compound::ft_on_transfer({"sender_id": "alice", "amount": "1000000000000000000000", "msg": "invest"})`.
+   2. liga un callback a `dai::ft_resolve_transfer({"sender_id": "alice", "receiver_id": "compound", "amount": "1000000000000000000000"})`.
+   3. compound termina de invertir, usando los tokens fungible ligados `compound::invest({…})`, después regresa el valor de los tokens que no fueron usados o necesitados. En este caso, Alice pidió que los tokens fueran invertidos, así que regresará 0. (En algunos casos un método tal vez no necesite usar todos los tokens fungibles, y regrese el restante)
+   4. La función `dai::ft_resolve_transfer` recibe éxito/fallo de la promesa. Si tiene éxito, contendrá los tokens no usados. Entonces el contrato `dai` usa aritmética simple (no se necesita en este caso) y actualiza el balance de Alice.
 
-#### Swapping one token for another via an Automated Market Maker (AMM) like Uniswap
+#### Intercambiar un token por otro a través de un Creador de Mercado Automatizado (AMM por sus siglas en inglés) como Uniswap
 
-Alice wants to swap 5 wrapped NEAR (wNEAR) for BNNA tokens at current market rate, with less than 2% slippage.
+Alice quiere intercambiar 5 NEAR envueltos (wNEAR) por tokens BNNA a la tasa de mercado actual, con menos del 2% de slippage.
 
-**Assumptions**
+**Suposiciones**
 
-- The wNEAR token contract is `wnear`.
-- Alice's account is `alice`.
-- The AMM's contract is `amm`.
-- BNNA's contract is `bnna`.
-- The precision ("decimals" in the metadata standard) on wNEAR contract is `10^24`.
-- The 5 tokens is `5 * 10^24` or as a number is `5000000000000000000000000`.
+- El contrato de token wNEAR es `wnear`.
+- La cuenta de Alice es `alice`.
+- El contrato de AMM es `amm`.
+- El contrato de BNNA es `bnna`.
+- La presición ("decimales" en el estándar de metadata) en el contrato wNEAR es de `10^24`.
+- Los 5 tokens son `5 * 10^24` o como número es `5000000000000000000000000`.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-Alice needs to issue one transaction to wNEAR contract to transfer 5 tokens (multiplied by precision) to `amm`, specifying her desired action (swap), her destination token (BNNA) & minimum slippage (<2%) in `msg`.
+Alice necesita emitir una transacción a un contrato wNEAR para transferir 5 tokens (multiplicados por la precisión) a `amm`, especificando la acción deseada (intercambio), el token al que se quiere cambias (BNNA) y el slippage mínimo (<2%) en `msg`.
 
-Alice will probably make this call via a UI that knows how to construct `msg` in a way the `amm` contract will understand. However, it's possible that the `amm` contract itself may provide view functions which take desired action, destination token, & slippage as input and return data ready to pass to `msg` for `ft_transfer_call`. For the sake of this example, let's say `amm` implements a view function called `ft_data_to_msg`.
+Alice probablemente hará esta llamada a través de una interface de usuario que sabe como construir un `msg` de una manera que el contrato `amm` entenderá. Sin embargo, es posible que el contrato `amm` provea funciones view que tomen la acción deseada, el token que se quiere y el slippage como entrada y datos de regreso ya listos para pasar a `msg` para `ft_transfer_call`. Para seguir con este ejemplo, digamos que `amm` implementa una función view llamada `ft_data_to_msg`.
 
-Alice needs to attach one yoctoNEAR. This will result in her seeing a confirmation page in her preferred NEAR wallet. NEAR wallet implementations will (eventually) attempt to provide useful information in this confirmation page, so receiver contracts should follow a strong convention in how they format `msg`. We will update this documentation with a recommendation, as community consensus emerges.
+Alice necesita agregar un yoctoNEAR. Esto resultará en ella viendo la página de confirmación en su billetera de NEAR preferida. Las implementaciones de billeteras NEAR proveerán (eventualmente) información útil en esta página de confirmación, así los contratos receptores deberán seguir un estándar estricto en como le dan formato a `msg`. Actualizaremos este documento con una documentación, a medida que surja el consenso de la comunidad.
 
-Altogether then, Alice may take two steps, though the first may be a background detail of the app she uses.
+Entonces, Alice puede dar dos pasos, aunque el primero puede ser un detalle que la aplicación que ella usa pide.
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. View `amm::ft_data_to_msg({ action: "swap", destination_token: "bnna", min_slip: 2 })`. Using [NEAR CLI](https://docs.near.org/docs/tools/near-cli):
+1. Vea `amm::ft_data_to_msg({ action: "swap", destination_token: "bnna", min_slip: 2 })`. Usando [NEAR CLI](https://docs.near.org/docs/tools/near-cli):
 
       near view amm ft_data_to_msg '{
         "action": "swap",
@@ -152,85 +152,85 @@ Altogether then, Alice may take two steps, though the first may be a background 
         "min_slip": 2
       }'
 
-   Then Alice (or the app she uses) will hold onto the result and use it in the next step. Let's say this result is `"swap:bnna,2"`.
+   Luego, Alice (o la aplicación que usa) conservará el resultado y lo usará en el siguiente paso. Digamos que este resultado es `"swap:bnna,2"`.
 
-2. Call `wnear::ft_on_transfer`. Using NEAR CLI:
+2. Llama a `wnear::ft_on_transfer`. Usando NEAR CLI:
        near call wnear ft_transfer_call '{
          "receiver_id": "amm",
          "amount": "5000000000000000000000000",
          "msg": "swap:bnna,2"
        }' --accountId alice --depositYocto 1
 
-   During the `ft_transfer_call` call, `wnear` does the following:
+   Durante la llamada a `ft_transfer_call`, `wnear` hace lo siguiente:
+   
+   1. Decrementa el balance de `alice` e incrementa el balance de `amm` por 5000000000000000000000000.
+   2. Hace una llamada asincrónica a `amm::ft_on_transfer({"sender_id": "alice", "amount": "5000000000000000000000000", "msg": "swap:bnna,2"})`.
+   3. Agrega un callback `wnear::ft_resolve_transfer({"sender_id": "alice", "receiver_id": "compound", "amount": "5000000000000000000000000"})`.
+   4. `amm` termina el intercambio, ya sea intercambiando exitosamente los 5 wNEAR dentro del slippage deseado, o fallando.
+   5. La función `wnear::ft_resolve_transfer` recibe el éxito/fallo de la promesa. Suponiendo que `amm` implementa transacciones todo-o-nada (es decir, no transferirá menos del monto especificado para así cumplir con los requerimientos del slippage), `wnear` no hará nada en este punto si el intercambio fue exitoso, o sino decrementará el balance de `amm` e incrementará el balance de `alice` por 5000000000000000000000000.
 
-   1. Decrease the balance of `alice` and increase the balance of `amm` by 5000000000000000000000000.
-   2. Makes async call `amm::ft_on_transfer({"sender_id": "alice", "amount": "5000000000000000000000000", "msg": "swap:bnna,2"})`.
-   3. Attaches a callback `wnear::ft_resolve_transfer({"sender_id": "alice", "receiver_id": "compound", "amount": "5000000000000000000000000"})`.
-   4. `amm` finishes the swap, either successfully swapping all 5 wNEAR within the desired slippage, or failing.
-   5. The `wnear::ft_resolve_transfer` function receives success/failure of the promise. Assuming `amm` implements all-or-nothing transfers (as in, it will not transfer less-than-the-specified amount in order to fulfill the slippage requirements), `wnear` will do nothing at this point if the swap succeeded, or it will decrease the balance of `amm` and increase the balance of `alice` by 5000000000000000000000000.
 
-
-## Reference-level explanation
+## Explicación a nivel referencia
 
 **NOTES**:
-- All amounts, balances and allowance are limited by `U128` (max value `2**128 - 1`).
-- Token standard uses JSON for serialization of arguments and results.
-- Amounts in arguments and results have are serialized as Base-10 strings, e.g. `"100"`. This is done to avoid JSON limitation of max integer value of `2**53`.
-- The contract must track the change in storage when adding to and removing from collections. This is not included in this core fungible token standard but instead in the [Storage Standard](../StorageManagement.md).
-- To prevent the deployed contract from being modified or deleted, it should not have any access keys on its account.
+- Todos los montos, balances y allowances están limitados por `U128` (valor máximo `2**128 - 1`).
+- El estándar del token usa JSON para la serialización de argumentos y resultados.
+- Los montos que los argumentos y resultados tienen están serializados en cadenas de Base-10, e.j. `"100"`. Esto se hace para evitar la limitación de JSON del valor entero máximo de `2**53`.
+- El contrato debe monitorear el cambio en el almacenamiento cuando agrega y remueve de colecciones. Esto no se incluye en este estándar básico de token fungible, sino que se encuentra en [Estándar de almacenamiento](../StorageManagement.md).
+- Para prevenir prevenir que el contrato desplegado sea modificado o eliminado, no debe tener llaves de acceso en su cuenta.
 
 **Interface**:
 
 ```javascript
-/************************************/
-/* CHANGE METHODS on fungible token */
-/************************************/
-// Simple transfer to a receiver.
+/***************************************/
+/* MÉTODOS DE CAMBIO en token fungible */
+/***************************************/
+// Transferencia simple a un receptor.
 //
-// Requirements:
-// * Caller of the method must attach a deposit of 1 yoctoⓃ for security purposes
-// * Caller must have greater than or equal to the `amount` being requested
+// Requerimientos:
+// * El llamante del método debe adjuntar un depósito de 1 yoctoⓃ por motivos de seguridad
+// * La persona que llama debe tener un número mayor o igual que el `amount` que se solicita
 //
 // Arguments:
-// * `receiver_id`: the valid NEAR account receiving the fungible tokens.
-// * `amount`: the number of tokens to transfer, wrapped in quotes and treated
-//   like a string, although the number will be stored as an unsigned integer
-//   with 128 bits.
-// * `memo` (optional): for use cases that may benefit from indexing or
-//    providing information for a transfer.
+// * `receiver_id`: la cuenta NEAR válida que estará recibiendo los tokens fungibles..
+// * `amount`: el número de tokens a transferir, envueltos en comillas y tratados como
+//   una cadena, aunque el número se almacenará como un unsigned integer
+//   con 128 bits.
+// * `memo` (opcional): para casos de uso que pueden beneficiarse de la indexación o
+//    o el suministro de información para una transferencia.
 function ft_transfer(
     receiver_id: string,
     amount: string,
     memo: string|null
 ): void {}
 
-// Transfer tokens and call a method on a receiver contract. A successful
-// workflow will end in a success execution outcome to the callback on the same
-// contract at the method `ft_resolve_transfer`.
+// Transfiere tokens y llama a un método en un contrato receptor. Un flujo
+// exitoso terminará en una salida de ejecución exitosa hacia el callback en el mismo
+// contrato en el método `ft_resolve_transfer`.
 //
-// You can think of this as being similar to attaching native NEAR tokens to a
-// function call. It allows you to attach any Fungible Token in a call to a
-// receiver contract.
+// Puedes pensar de esto como agregar tokens NEAR nativos a una llamada
+// de función. Te permite agregar cualquier Token Fungible a una llamada a
+// contrato receptor.
 //
-// Requirements:
-// * Caller of the method must attach a deposit of 1 yoctoⓃ for security
-//   purposes
-// * Caller must have greater than or equal to the `amount` being requested
-// * The receiving contract must implement `ft_on_transfer` according to the
-//   standard. If it does not, FT contract's `ft_resolve_transfer` MUST deal
-//   with the resulting failed cross-contract call and roll back the transfer.
-// * Contract MUST implement the behavior described in `ft_resolve_transfer`
+// Requerimientos:
+// * El llamante del método debe de agregar el depósito de 1 yoctoⓃ por propósitos
+//   de seguridad
+// * El llamante debe tener mayor o igual cantidad al `amount` requerido
+// * El contrato receptor debe implementar `ft_on_transfer` acorde con el
+//   estándar. Sino, la función `ft_resolve_transfer` del contrato debe lidiar
+//   con la llamada cross-contrato resultante fallida y revertir la transferencia.
+// * El contrato de implementar el comportamiento descrito en `ft_resolve_transfer`
 //
-// Arguments:
-// * `receiver_id`: the valid NEAR account receiving the fungible tokens.
-// * `amount`: the number of tokens to transfer, wrapped in quotes and treated
-//   like a string, although the number will be stored as an unsigned integer
-//   with 128 bits.
-// * `memo` (optional): for use cases that may benefit from indexing or
-//    providing information for a transfer.
-// * `msg`: specifies information needed by the receiving contract in
-//    order to properly handle the transfer. Can indicate both a function to
-//    call and the parameters to pass to that function.
+// Argumentos:
+// * `receiver_id`: la cuenta NEAR válida que recibe los tokens fungibles.
+// * `amount`: el número de tokens a transferir, envueltos en comillas y tratados como
+//   una cadena, aunque el número se almacenará como un unsigned integer
+//   con 128 bits.
+// * `memo` (opcional): para casos de uso que pueden beneficiarse de la indexación o
+//    o el suministro de información para una transferencia.
+// * `msg`: especifica la información necesitada por el contrato receptor para
+//    así manejar propiamente la transacción. Puede indicar una funcion a
+//    llamar y los parámetros a pasar a esa función.
 function ft_transfer_call(
    receiver_id: string,
    amount: string,
@@ -238,15 +238,16 @@ function ft_transfer_call(
    msg: string
 ): Promise {}
 
-/****************************************/
-/* CHANGE METHODS on receiving contract */
-/****************************************/
+/*********************************************/
+/* MÉTODOS DE CAMBIO en contratos receptores */
+/*********************************************/
 
-// This function is implemented on the receving contract.
-// As mentioned, the `msg` argument contains information necessary for the receiving contract to know how to process the request. This may include method names and/or arguments. 
-// Returns a value, or a promise which resolves with a value. The value is the
-// number of unused tokens in string form. For instance, if `amount` is 10 but only 9 are
-// needed, it will return "1".
+// Esta función es implementada en el contrat receptor.
+// Como se mencionó el argumento `msg` contiene la información necesaria para hacerle saber al contrato receptor como procesar la petición. Esto tal vez incluya nombres de método y/o argumentos.
+// Regresa un valor, o promesa que se resuelve con un valor. El valor es el
+// número de tokens no usados en forma de cadena. 
+// number of unused tokens in string form. Por ejemplo, si `amount` es 10 pero solo 9 son
+// necesitados, regresará "1".
 function ft_on_transfer(
     sender_id: string,
     amount: string,
@@ -254,48 +255,51 @@ function ft_on_transfer(
 ): string {}
 
 /****************/
-/* VIEW METHODS */
+/* MÉTODOS VIEW */
 /****************/
 
-// Returns the total supply of fungible tokens as a string representing the value as an unsigned 128-bit integer.
+// Regresa el suministro total de tokens fungibles como una cadena que representa el valor de un entero de 128-bits no firmado (unsigned 128-bit integer).
 function ft_total_supply(): string {}
 
 // Returns the balance of an account in string form representing a value as an unsigned 128-bit integer. If the account doesn't exist must returns `"0"`.
+// Regresa el balance de una cuenta como una cadena y representa el valor como un entero de 128-bits no firmado (unsigned 128-bit integer). Si la cuenta no 
+// existe deberá regresar `"0"`.
 function ft_balance_of(
     account_id: string
 ): string {}
 ```
 
 The following behavior is required, but contract authors may name this function something other than the conventional `ft_resolve_transfer` used here.
+El siguiente comportamiento es requerido, pero los autores de los contratos tal vez llamen a esta función de diferente a la manera estandarizada `ft_resolve_transfer` como se usa aquí:
 
 ```ts
-// Finalize an `ft_transfer_call` chain of cross-contract calls.
+// Finalice una cadena `ft_transfer_call` de llamadas cross-contract.
 //
-// The `ft_transfer_call` process:
+// El proceso `ft_transfer_call`:
 //
-// 1. Sender calls `ft_transfer_call` on FT contract
-// 2. FT contract transfers `amount` tokens from sender to receiver
-// 3. FT contract calls `ft_on_transfer` on receiver contract
-// 4+. [receiver contract may make other cross-contract calls]
-// N. FT contract resolves promise chain with `ft_resolve_transfer`, and may
-//    refund sender some or all of original `amount`
+// 1. El remitente llama a `ft_transfer_call` en el contrato FT
+// 2. El contrato FT transfiere `amount` tokens del remitente al receptor
+// 3. El contrato FT llama a `ft_on_transfer` en el contrato del receptor
+// 4+. [el contrato receptor puede hacer otras llamadas cross-contract]
+// N. El contrato FT resuelve la cadena de promesas con `ft_resolve_transfer`, y podría
+//    reembolsar al remitente parte o la totalidad del `amount` original
 //
-// Requirements:
-// * Contract MUST forbid calls to this function by any account except self
-// * If promise chain failed, contract MUST revert token transfer
-// * If promise chain resolves with a non-zero amount given as a string,
-//   contract MUST return this amount of tokens to `sender_id`
+// Requerimientos:
+// * El contrato DEBE prohibir las llamadas a esta función por cualquier cuenta excepto la propia
+// * Si la cadena de promesa falló, el contrato DEBE revertir la transferencia del token
+// * Si la cadena de promesa se resuelve con una cantidad distinta de cero regresada como una cadena,
+//   el contrato DEBE devolver esta cantidad de tokens a `sender_id`
 //
-// Arguments:
-// * `sender_id`: the sender of `ft_transfer_call`
-// * `receiver_id`: the `receiver_id` argument given to `ft_transfer_call`
-// * `amount`: the `amount` argument given to `ft_transfer_call`
+// Argumentos:
+// * `sender_id`: el remitente de `ft_transfer_call`
+// * `receiver_id`: el argumento `receiver_id` dado a `ft_transfer_call`
+// * `amount`: el argumento `amount` dado a `ft_transfer_call`
 //
-// Returns a string representing a string version of an unsigned 128-bit
-// integer of how many total tokens were spent by sender_id. Example: if sender
-// calls `ft_transfer_call({ "amount": "100" })`, but `receiver_id` only uses
-// 80, `ft_on_transfer` will resolve with `"20"`, and `ft_resolve_transfer`
-// will return `"80"`.
+// Regresa una representación de cadena, una versión de un entero de 128-bits no
+// firmado de cuantos tokens totales fueron gastados por sender_id. Ejemplo: si el remitente
+// llama a `ft_transfer_call({ "amount": "100" })`, pero `receiver_id` solo usa
+// 80, `ft_on_transfer` se resolverá con `"20"`, y `ft_resolve_transfer`
+// regresará `"80"`.
 function ft_resolve_transfer(
    sender_id: string,
    receiver_id: string,
@@ -303,19 +307,20 @@ function ft_resolve_transfer(
 ): string {}
 ```
 
-## Drawbacks
+## Desventajas
 
-- The `msg` argument to `ft_transfer` and `ft_transfer_call` is freeform, which may necessitate conventions.
-- The paradigm of an escrow system may be familiar to developers and end users, and education on properly handling this in another contract may be needed.
+- El argumento `msg` para `ft_transfer` y `ft_transfer` es de forma libre, que tal vez necesita estandarización.
+- El paradigma de un sistema escrow tal vez sea familiar para los desarrolladores y usuarios, y es posible que se necesite educación sobre el manejo adecuado de esto en otro contrato.
 
-## Future possibilities
+## Posibilidades futuras
 
 - Support for multiple token types
-- Minting and burning
+- Soporte para múltiples tipos de tokens
+- Minting y quemado
 
-## History
+## Historia
 
-See also the discussions:
-- [Fungible token core](https://github.com/near/NEPs/discussions/146#discussioncomment-298943)
-- [Fungible token metadata](https://github.com/near/NEPs/discussions/148)
-- [Storage standard](https://github.com/near/NEPs/discussions/145)
+Vea también las discuciones:
+- [Núcleo de token fungible](https://github.com/near/NEPs/discussions/146#discussioncomment-298943)
+- [Metadata de token fungible](https://github.com/near/NEPs/discussions/148)
+- [Estándar de almacenamiento](https://github.com/near/NEPs/discussions/145)
