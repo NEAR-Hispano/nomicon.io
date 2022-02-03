@@ -1,8 +1,8 @@
-## Non-Fungible Tokens
+## Tokens no fungibles
 
-- [Non-Fungible Token Core](Core.md)
-- [Non-Fungible Token Metadata](Metadata.md)
-- [Non-Fungible Token Approval Management](ApprovalManagement.md)
-- [Non-Fungible Token Enumeration](Enumeration.md)
-- [Non-Fungible Token Royalty Payout](Payout.md)
-- [Non-Fungible Token Events](Event.md)
+- [Núcleo de token no fungible](Core.md)
+- [Metadatos de tokens no fungibles](Metadata.md)
+- [Gestión de aprobación de tokens no fungibles](ApprovalManagement.md)
+- [Enumeración de tokens no fungibles](Enumeration.md)
+- [Pago de regalías de tokens no fungibles](Payout.md)
+- [Eventos de tokens no fungibles](Event.md)
