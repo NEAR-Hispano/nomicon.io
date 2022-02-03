@@ -269,7 +269,7 @@ function ft_balance_of(
 ): string {}
 ```
 
-El siguiente comportamiento es requerido, pero los autores de los contratos tal vez llamen a esta función de diferente a la manera estandarizada `ft_resolve_transfer` como se usa aquí:
+El siguiente comportamiento es requerido, pero los autores de los contratos tal vez llamen a esta función de diferente manera a la estandarizada `nft_resolve_transfer` como se usa aquí:
 
 ```ts
 // Finalice una cadena `ft_transfer_call` de llamadas cross-contract.
