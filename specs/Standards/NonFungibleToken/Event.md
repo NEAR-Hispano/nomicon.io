@@ -104,7 +104,7 @@ interface NftMintLog {
 
 // Un evento log para capturar la quema de tokens
 // Argumentos
-// * `owner_id`: owner of tokens to burn
+// * `owner_id`: el dueño de los tokens a quemar
 // * `authorized_id`: acuenta aprobada para quemar, si aplica
 // * `token_ids`: ["1","2"]
 // * `memo`: mensaje opcional
