@@ -1,74 +1,74 @@
-# Non-Fungible Token Enumeration ([NEP-181](https://github.com/near/NEPs/discussions/181))
+# Enumeración del Token No Fungible ([NEP-181](https://github.com/near/NEPs/discussions/181))
 
-Version `1.0.0`
+Versión `1.0.0`
 
-## Summary
+## Resumen
 
-Standard interfaces for counting & fetching tokens, for an entire NFT contract or for a given owner.
+Interfaces estándar para contar y obtener tokens, para un contrato NFT completo o para un propietario determinado.
 
-## Motivation
+## Motivación
 
-Apps such as marketplaces and wallets need a way to show all tokens owned by a given account and to show statistics about all tokens for a given contract. This extension provides a standard way to do so.
+Aplicaciones como marketplaces y billeteras necesitan una manera de mostrar todos los tokens que una cuenta posee y enseñar las estadísticas de todos los tokens para un contrato dado. Esta extensión provee una manera estandarizada de hacerlo.
 
-While some NFT contracts may forego this extension to save [storage] costs, this requires apps to have custom off-chain indexing layers. This makes it harder for apps to integrate with such NFTs. Apps which integrate only with NFTs that use the Enumeration extension do not even need a server-side component at all, since they can retrieve all information they need directly from the blockchain.
+Mientras que algunos contratos NFT pueden prescindir de esta extensión para ahorrar costos de almacenamiento, esto requiere a las aplicaciones tener una capa indexada personalizada off-chain. Esto hace más difícil para las apps integrarse con dichos NFTs. Las apps que se integran solo con NFTs que usan la extensión Enumeración ni siquiera necesitan un componente del lado del servidor, ya que ellas pueden recuperar toda la información que necesitan directamente de la blockchain.
 
-Prior art:
+Estado de la técnica:
 
-- [ERC-721]'s enumeration extension
+- Extensión de enumeración [ERC-721]
 
 ## Interface
 
-The contract must implement the following view methods:
+El contrato debe implementar los siguientes métodos view:
 
 ```ts
-// Returns the total supply of non-fungible tokens as a string representing an
-// unsigned 128-bit integer to avoid JSON number limit of 2^53; and "0" if there are no tokens.
+// Regresa el suministro total de tokens no fungibles como una cadena que representa a
+// un entero unsigned de 128-bits para evitar el límite numérico de JSON de 2^53; y "0" si no hay tokens.
 function nft_total_supply(): string {}
 
-// Get a list of all tokens
+// Obtener una lista de tokens
 //
-// Arguments:
-// * `from_index`: a string representing an unsigned 128-bit integer,
-//    representing the starting index of tokens to return
-// * `limit`: the maximum number of tokens to return
+// Argumentos:
+// * `from_index`: una cadena que representa un entero unsigned de 128-bits,
+//    representa el índice inicial de los tokens a regresar
+// * `limit`: el número máximo de los tokens a regresar
 //
-// Returns an array of Token objects, as described in Core standard, and an empty array if there are no tokens
+// Regresa un arregla de objetos Token, como se describe en el estándar básico, y un arreglo vacío si no hay tokens
 function nft_tokens(
   from_index: string|null, // default: "0"
-  limit: number|null, // default: unlimited (could fail due to gas limit)
+  limit: number|null, // default: ilimitado (podría fallar debido al límite del gas)
 ): Token[] {}
 
-// Get number of tokens owned by a given account
+// Obtener un número de token que posee una cuenta dada
 //
-// Arguments:
-// * `account_id`: a valid NEAR account
+// Argunmentos:
+// * `account_id`: una cuenta NEAR válida
 //
-// Returns the number of non-fungible tokens owned by given `account_id` as
-// a string representing the value as an unsigned 128-bit integer to avoid JSON
-// number limit of 2^53; and "0" if there are no tokens.
+// Regresa el número de tokens no fungibles que posee `account_id` como una cadena,
+// que representa un entero unsigned de 128-bits para evitar el límite numérico de JSON
+// de 2^53; y "0" si no hay tokens.
 function nft_supply_for_owner(
   account_id: string,
 ): string {}
 
-// Get list of all tokens owned by a given account
+// Obtener una lista de todos los tokens que posee una cuenta
 //
-// Arguments:
-// * `account_id`: a valid NEAR account
-// * `from_index`: a string representing an unsigned 128-bit integer,
-//    representing the starting index of tokens to return
-// * `limit`: the maximum number of tokens to return
+// Argumentos:
+// * `account_id`: una cuenta NEAR válida
+// * `from_index`: una cadena que representa un entero unsigned de 128-bits,
+//    representa el índice inicial de los tokens a regresar
+// * `limit`: el número máximo de los tokens a regresar
 //
-// Returns a paginated list of all tokens owned by this account, and an empty array if there are no tokens
+// Regresa una lista paginada de todos los tokens que posee esta cuenta, y un arreglo vacío si no hay tokens
 function nft_tokens_for_owner(
   account_id: string,
   from_index: string|null, // default: 0
-  limit: number|null, // default: unlimited (could fail due to gas limit)
+  limit: number|null, // default: ilimitado (podría fallar debido al límite del gas)
 ): Token[] {}
 ```
 
-## Notes
+## Notas
 
-At the time of this writing, the specialized collections in the `near-sdk` Rust crate are iterable, but not all of them have implemented an `iter_from` solution. There may be efficiency gains for large collections and contract developers are encouraged to test their data structures with a large amount of entries. 
+En el momento en el que se escribe esto, las colecciones especializada en el crate de Rust `near-sdk` son iterables, pero no todas tienen implementada la solución `iter_from`. Pueden haber ganancias en la eficiencia para las colecciones grandes y se invita a los desarrolladores a probar sus estructuras de datos con una cantidad grande de entradas.
 
   [ERC-721]: https://eips.ethereum.org/EIPS/eip-721
-  [storage]: https://docs.near.org/docs/concepts/storage-staking
+  [almacenamiento]: https://docs.near.org/docs/concepts/storage-staking
