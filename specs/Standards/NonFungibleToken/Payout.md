@@ -1,65 +1,65 @@
-# Standard for a Multiple-Recipient-Payout mechanic on NFT Contracts (NEP-199)
+# Estándar para una mecánica de pago de múltiples destinatarios en contratos NFT (NEP-199)
 Version `2.0.0`.
 
-This standard assumes the NFT contract has implemented
-[NEP-171](https://github.com/near/NEPs/blob/master/specs/Standards/NonFungibleToken/Core.md) (Core) and [NEP-178](https://github.com/near/NEPs/blob/master/specs/Standards/NonFungibleToken/ApprovalManagement.md) (Approval Management).
+Este estándar asume que el contrato NFT ha implementado
+[NEP-171](https://github.com/near/NEPs/blob/master/specs/Standards/NonFungibleToken/Core.md) (Core) y [NEP-178](https://github.com/near/NEPs/blob/master/specs/Standards/NonFungibleToken/ApprovalManagement.md) (Gestión de Aprobación).
 
-## Summary
-An interface allowing non-fungible token contracts to request that financial contracts pay-out multiple receivers, enabling flexible royalty implementations.
+## Resumen
+Una interface que permite a los contratos de token no fungible pedir que los contratos financieros paguen a múltiples receptores, haciendo posible implementaciones regalías flexibles.
 
-## Motivation
-Currently, NFTs on NEAR support the field `owner_id`, but lack flexibility for ownership and payout mechanics with more complexity, including but not limited to royalties. Financial contracts, such as marketplaces, auction houses, and NFT Loan contracts would benefit from a standard interface on NFT producer contracts for querying whom to pay out, and how much to pay.
+## Motivación
+Actualmente, los NFTs en NEAR soportan el campo `owner_id`, pero carecen de flexibilidad para la propiedad y mecánicas de pago más complejas, incluyendo pero no limitado a las regalías. Los contratos financieros, como los marketplaces, casas de subasta, y los contratos de préstamo NFT se beneficiarían de una interfaz estándar en los contratos productores de NFT para consultar a quién pagar, y cuanto pagar.
 
-Therefore, the core goal of this standard is to define a set of methods for financial contracts to call, without specifying how NFT contracts define the divide of payout mechanics, and a standard `Payout` response structure.
+Por lo tanto, el objetivo central de este estándar es de definir un conjunto de métodos que los contratos financieros llamen, sin especificar como los contratos NFT definen la división de las mecánicas de pago, y una estructura de respuesta `Payout` estándar.
 
-## Guide-level explanation
+## Explicación a nivel guía
 
-This Payout extension standard adds two methods to NFT contracts:
-- a view method: `nft_payout`, accepting a `token_id` and some `balance`, returning the `Payout` mapping for the given token.
-- a call method: `nft_transfer_payout`, accepting all the arguments of`nft_transfer`, plus a field for some `Balance` that calculates the `Payout`, calls `nft_transfer`, and returns the `Payout` mapping.
+Esta extensión de pago agrega dos métodos a los contratos NFT:
+- un método view: `nft_payout`, aceptando un `token_id` y algún `balance`, regresando el mapeo de `Payout` para el token dado.
+- un método de llamada: `nft_transfer_payout`, aceptando todos los argumentos de `nft_transfer`, más un campo para algún `Balance` que calcula el `Payout`, llama a `nft_transfer`, y regresa el mapeo de `Payout`.
 
-Financial contracts MUST validate several invariants on the returned
+Los contratos financieros DEBEN validar varias invariantes en en el valor regresado
 `Payout`:
-1. The returned `Payout` MUST be no longer than the given maximum length (`max_len_payout` parameter) if provided. Payouts of excessive length can become prohibitively gas-expensive. Financial contracts can specify the maximum length of payout the contract is willing to respect with the `max_len_payout` field on `nft_transfer_payout`.
-2. The balances MUST add up to less than or equal to the `balance` argument in `nft_transfer_payout`. If the balance adds up to less than the `balance` argument, the financial contract MAY claim the remainder for itself.
-3. The sum of the balances MUST NOT overflow. This is technically identical to 2, but financial contracts should be expected to handle this possibility.
+1. El `Payout` regresado NO DEBE ser más largo que la longitud máxima dada (parámetro `max_len_payout`) si se proporciona. Pagos con longitudes excesivas pueden convertirse prohibitivamente costosas de gas. Los contratos financieros pueden especificar la longitud máxima del pago que el contrato va a respetar con el campo `max_len_payout` en `nft_transfer_payout`.
+2. Los balances DEBEN sumar menos o igual al argumento `balance` en `nft_transfer_payout`. Si el balance suma menos que el argumento `balance`, el contrato financiero PODRÍA reclamar el restante para sí mismo.
+3. La suma de los balances NO DEBE desbordarse. Esto es técnicamente igual al punto 2, pero se espera que los contratos financeros manejen esta posibilidad.
 
-Financial contracts MAY specify their own maximum length payout to respect.
-At minimum, financial contracts MUST NOT set their maximum length below 10.
+Los contratos financieros PUEDEN especificar su longitud máxima de pago a respetar.
+Como mínimo, los contratos financieros NO DEBEN establecer su longitud máxima por debajo de 10.
 
-If the Payout contains any addresses that do not exist, the financial contract MAY keep those wasted payout funds.
+Si el pago contiene direcciones que no existen, el contrato financiero PUEDE quedarse con esos fondos de pago desperdiciados.
 
-Financial contracts MAY take a cut of the NFT sale price as commission, subtracting their cut from the total token sale price, and calling `nft_transfer_payout` with the remainder.
+Los contratos financieros PUEDEN obtener una parte del precio de vente del NFT como comisión, restando su parte del total del precio de venta, y llamando a `nft_transfer_payout` con el restante.
 
-## Example Flow
+## Flujo de ejemplo
 ```
- ┌─────────────────────────────────────────────────┐
- │Token Owner approves marketplace for token_id "0"│
- ├─────────────────────────────────────────────────┘
+ ┌─────────────────────────────────────────────────────────────────┐
+ │El propietario del token aprueba al marketplace para token_id "0"│
+ ├─────────────────────────────────────────────────────────────────┘
  │  nft_approve("0",market.near,<SaleArgs>)
  ▼
  ┌───────────────────────────────────────────────┐
- │Marketplace sells token to user.near for 10N   │
+ │Marketplace vende token a user.near por 10N    │
  ├───────────────────────────────────────────────┘
  │  nft_transfer_payout(user.near,"0",0,"10000000",5)
  ▼
  ┌───────────────────────────────────────────────┐
- │NFT contract returns Payout data               │
+ │El contrato NFT devuelve datos de pago         │
  ├───────────────────────────────────────────────┘
  │  Payout(<who_gets_paid_and_how_much)
  ▼
  ┌───────────────────────────────────────────────┐
- │Market validates and pays out addresses        │
+ │El mercado valida y paga direcciones           │
  └───────────────────────────────────────────────┘
 ```
 
 ## Reference-level explanation
 ```rust
-/// A mapping of NEAR accounts to the amount each should be paid out, in
-/// the event of a token-sale. The payout mapping MUST be shorter than the
-/// maximum length specified by the financial contract obtaining this
-/// payout data. Any mapping of length 10 or less MUST be accepted by
-/// financial contracts, so 10 is a safe upper limit.
+/// Un mapeo de cuentas NEAR a la cantidad que se le debe pagar a cada una, en
+/// el evento de una venta de token. El mapeo del pago DEBE ser más corto que
+/// la longitud mácima especificada por el contrato financiero que obtiene estos
+/// datos de pago. Cualquier mapeo de longitud 10 o menos DEBE ser aceptado por
+/// los contratos financieros, así que 10 es un límite superior seguro.
 #[derive(Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Payout {
@@ -67,13 +67,13 @@ pub struct Payout {
 }
 
 pub trait Payouts{
-  /// Given a `token_id` and NEAR-denominated balance, return the `Payout`.
-  /// struct for the given token. Panic if the length of the payout exceeds
+  /// Dado un `token_id` y un saldo denominado NEAR, devuelva la estructura `Payout`
+  /// para el token dado. Entrar en pánico si la longitud del pago excede
   /// `max_len_payout.`
   fn nft_payout(&self, token_id: String, balance: U128, max_len_payout: u32) -> Payout;
-  /// Given a `token_id` and NEAR-denominated balance, transfer the token
-  /// and return the `Payout` struct for the given token. Panic if the
-  /// length of the payout exceeds `max_len_payout.`
+  /// Dado un `token_id` y un saldo denominado NEAR, transferir el token
+  /// y devuelva la estructura `Payout` para el token dado. Entrar en pánico si
+  /// la longitud del pago excede `max_len_payout.`
   #[payable]
   fn nft_transfer_payout(
     &mut self,
@@ -91,17 +91,18 @@ pub trait Payouts{
 }
 ```
 
-Note that NFT and financial contracts will vary in implementation. This means that some extra CPU cycles may occur in one NFT contract and not another. Furthermore, a financial contract may accept fungible tokens, native NEAR, or another entity as payment. Transferring native NEAR tokens is less expensive in gas than sending fungible tokens. For these reasons, the maximum length of payouts may vary according to the customization of the smart contracts.
+Note que un NFT y un contrato financiero variarán según su implementación. Esto significa que algunos ciclos del CPU extras podrán ocurrir en uno que otro contrato NFT.
+Además, un contrato financiero puede aceptar tokens fungibles, NEARs nativos, u otras entidades como pago. Transferir tokens NEAR nativos es menos costoso en gas que enviar tokens fungibles. Por estas razones, la longitud máxima de los pagos puede variar acorde a la personalización del contrato inteligente.
 
-## Drawbacks
+## Desventajas
 
-There is an introduction of trust that the contract calling `nft_transfer_payout` will indeed pay out all intended parties. However, since the calling contract will typically be something like a marketplace used by end users, malicious actors might be found out more easily and might have less incentive.  
-There is an assumption that NFT contracts will understand the limits of gas and not allow for a number of payouts that cannot be achieved.
+Hay una introducción de confianza que el contrato llamando a `nft_transfer_payout` va a pagar a todas las partes previstas. Sin embargo, ya que el contrato que llama típicamente es algo como un marketplace usado por usuarios finales, actores maliciosos pueden ser encontrados más facilmente y podrían tener menos incentivos.
+Hay una suposición que los contratos NFT entenderán los límites del gas y no permitirán un número de pagos que no pueden ser completados.
 
-## Future possibilities
+## Posibilidades futuras
 
-In the future, the NFT contract itself may be able to place an NFT transfer is a state that is "pending transfer" until all payouts have been awarded. This would keep all the information inside the NFT and remove trust.
+En el futuro, el contrato NFT en sí, podría ser capáz de poner una transferencia NFT como un estado que sea "transferencia pendiente" hasta que todos los pagos sean otorgados. Esto mantendría tods la información dentro del NFT y removería la confianza.
 
 ## Errata
 
-Version `2.0.0` contains the intended `approval_id` of `u64` instead of the stringified `U64` version. This was an oversight, but since the standard was live for a few months before noticing, the team thought it best to bump the major version.
+La versión `2.0.0` contiene el `approval_id` de `u64` intencionado en vez de la versión cadena de `U64`. Esto fue un descuido, pero ya que el estándar fue publicado meses antes de notarlo, el equipo pensó que subir la versión era lo mejor.
