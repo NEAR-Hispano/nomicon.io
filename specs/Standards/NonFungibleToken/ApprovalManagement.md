@@ -1,76 +1,76 @@
-# Non-Fungible Token Approval Management ([NEP-178](https://github.com/near/NEPs/discussions/178))
+# Gestión de Aprovación de Token No Fungible ([NEP-178](https://github.com/near/NEPs/discussions/178))
 
 Version `1.0.0`
 
-## Summary
+## Resumen
 
-A system for allowing a set of users or contracts to transfer specific Non-Fungible Tokens on behalf of an owner. Similar to approval management systems in standards like [ERC-721].
+Un sistema para permitir a un conjunto de usuarios o contratos el transgeriro Tokens No Fungibles específicos a nombre de un propietario. Similar a los sistemas de gestión de aprobación en los estándares como [ERC-721].
 
   [ERC-721]: https://eips.ethereum.org/EIPS/eip-721
 
-## Motivation
+## Motivación
 
-People familiar with [ERC-721] may expect to need an approval management system for basic transfers, where a simple transfer from Alice to Bob requires that Alice first _approve_ Bob to spend one of her tokens, after which Bob can call `transfer_from` to actually transfer the token to himself.
+Las personas familiarizadas con [ERC-721] puede esperar necesitar un sistema de gestión de aprobación para transferencias básicas, donde una simple tranferencia de Alice a Bob requiere que Alice primero _apruebe_ a Bob para gastar uno de sus tokens, después de eso Bob puede llamar a `transfer_from` para transferir el token a sí mismo.
 
-NEAR's [core Non-Fungible Token standard](Core.md) includes good support for safe atomic transfers without such complexity. It even provides "transfer and call" functionality (`nft_transfer_call`) which allows a specific token to be "attached" to a call to a separate contract. For many Non-Fungible Token workflows, these options may circumvent the need for a full-blown Approval Managament system.
+El [estándar básico de Token No Fungible](Core.md) incluye un buen soporte para transferencias atómicas seguras sin tal complejidad. Incluso proporciona la funcionalidad "transfiere y llama" (`nft_transfer_call`) que permite a un token en específico ser "agregado" a la llamada a un contrato separado. Para muchos flujos de Token No Fungible, estas opciones pueden circunvenir las necesidades para un sistema de Gestión de Aprobaciones completo.
 
-However, some Non-Fungible Token developers, marketplaces, dApps, or artists may require greater control. This standard provides a uniform interface allowing token owners to approve other NEAR accounts, whether individuals or contracts, to transfer specific tokens on the owner's behalf.
+Sin embargo, algunos desarrolladores de Tokens No Fungibles, marketplaces, dApps, o artistas pueden requerir un mayor control. Este estándar proporciona una interfaz uniforme permitiendo a los dueños de tokens aprobar otras cuentas NEAR, individuos o contratos, para transferir tokens específicos en nombre del propietario.
 
-Prior art:
+Estado de la técnica:
 
 - Ethereum's [ERC-721]
-- [NEP-4](https://github.com/near/NEPs/pull/4), NEAR's old NFT standard that does not include approvals per token ID
+- [NEP-4](https://github.com/near/NEPs/pull/4), Estándar antiguo de NEAR para NFTs que no incluye la aprobación por ID de token
 
-## Example Scenarios
+## Escenarios de ejemplo
 
-Let's consider some examples. Our cast of characters & apps:
+Vamos a considerar algunos ejemplos. Nuestro elenco de personajes y aplicaciones:
 
-* Alice: has account `alice` with no contract deployed to it
-* Bob: has account `bob` with no contract deployed to it
-* NFT: a contract with account `nft`, implementing only the [Core NFT standard](Core.md) with this Approval Management extension
-* Market: a contract with account `market` which sells tokens from `nft` as well as other NFT contracts
-* Bazaar: similar to Market, but implemented differently (spoiler alert: has no `nft_on_approve` function!), has account `bazaar`
+* Alice: tiene la cuenta `alice` sin contratos desplegados en ella
+* Bob: tiene la cuenta `bob` sin contratos desplegados en ella
+* NFT: un contrato con la cuenta `nft`, implementa solo el [estándar básico NFT](Core.md) con esta extensión de Gestión de Aprobación
+* Mercado: un contrato con la cuenta `market` que vende tokens desde `nft` así como de otros contratos de NFT
+* Bazar: similar a Mercado, pero implementado de manera diferente (spoiler alert: no tiene la función `nft_on_approve`!), tiene la cuenta `bazaar`
 
-Alice and Bob are already [registered](../StorageManagement.md) with NFT, Market, and Bazaar, and Alice owns a token on the NFT contract with ID=`"1"`.
+Alice y Bob están ya [registrados](../StorageManagement.md) con NFT, Mercado, y Bazar, y Alice posee un token en el contrato NFT con el ID=`"1"`.
 
-Let's examine the technical calls through the following scenarios:
+Examinemos las llamadas técnicas a través de los siguiente escenarios:
 
-1. [Simple approval](#1-simple-approval): Alice approves Bob to transfer her token.
-2. [Approval with cross-contract call (XCC)](#2-approval-with-cross-contract-call): Alice approves Market to transfer one of her tokens and passes `msg` so that NFT will call `nft_on_approve` on Market's contract.
-3. [Approval with XCC, edge case](#3-approval-with-cross-contract-call-edge-case): Alice approves Bazaar and passes `msg` again, but what's this? Bazaar doesn't implement `nft_on_approve`, so Alice sees an error in the transaction result. Not to worry, though, she checks `nft_is_approved` and sees that she did successfully approve Bazaar, despite the error.
-4. [Approval IDs](#4-approval-ids): Bob buys Alice's token via Market.
-5. [Approval IDs, edge case](#5-approval-ids-edge-case): Bob transfers same token back to Alice, Alice re-approves Market & Bazaar. Bazaar has an outdated cache. Bob tries to buy from Bazaar at the old price.
-6. [Revoke one](#6-revoke-one): Alice revokes Market's approval for this token.
-7. [Revoke all](#7-revoke-all): Alice revokes all approval for this token.
+1. [Aprobación simple](#1-simple-approval): Alice aprueba a Bob para transferir su token.
+2. [Aprobación con llamada cross-contrato (XCC)](#2-approval-with-cross-contract-call): Alice aprueba a Mercado para transferir uno de sus tokens y pasa un `msg` para que NFT llame a `nft_on_approve` en el contrato de Mercado.
+3. [Aprobación con XCC, caso extremo](#3-approval-with-cross-contract-call-edge-case): Alice aprueba a Bazar y pasa un `msg` otra vez, pero, ¿qué es esto? Bazar no tiene `nft_on_approve` implementado, entonces Alice ve un error en el resultado de la transacción. No hay de que preocuparse, sin embargo, ella revisa `nft_is_approved` y ve que ella aprobó exitosamente a Bazar, a pesar del error.
+4. [IDs de aprobación](#4-approval-ids): Bob compra el token de Alice a través de Mercado.
+5. [IDs de aprobación, caso extremo](#5-approval-ids-edge-case): Bob transfiere el mismo token de regreso a Alice, Alice vuelve a aprobar a Mercado y a Bazar. Bazar tiene un cache antiguo. Bob trata de comprar de Bazar usando el precio anterior.
+6. [Revoca uno](#6-revoke-one): Alice revoca la aprobación de Mercado para este token.
+7. [Revoca todos](#7-revoke-all): Alice revoca la aprobación de todos para este token.
 
-### 1. Simple Approval
+### 1. Aprobación simple
 
-Alice approves Bob to transfer her token.
+Alice aprueba a Bob para transferir su token.
 
-**High-level explanation**
+**Explicación de alto nivel
 
-1. Alice approves Bob
-2. Alice queries the token to verify
-3. Alice verifies a different way
+1. Alice aprueba a Bob
+2. Alice consulta el token para verificar
+3. Alice verifica de una manera diferente
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. Alice calls `nft::nft_approve({ "token_id": "1", "account_id": "bob" })`. She attaches 1 yoctoⓃ, (.000000000000000000000001Ⓝ). Using [NEAR CLI](https://docs.near.org/docs/tools/near-cli) to make this call, the command would be:
+1. Alice llama a `nft::nft_approve({ "token_id": "1", "account_id": "bob" })`. Ella adjunta 1 yoctoⓃ, (.000000000000000000000001Ⓝ). Usa [NEAR CLI](https://docs.near.org/docs/tools/near-cli) para hacer esta llamada, el comando sería:
 
        near call nft nft_approve \
          '{ "token_id": "1", "account_id": "bob" }' \
          --accountId alice --depositYocto 1
 
-   The response:
+   La respuesta:
 
        ''
 
-2. Alice calls view method `nft_token`:
+2. Alice llama al método view `nft_token`:
 
        near view nft nft_token \
          '{ "token_id": "1" }'
 
-   The response:
+   La respuesta:
 
        {
          "id": "1",
@@ -80,38 +80,38 @@ Alice approves Bob to transfer her token.
          }
        }
 
-3. Alice calls view method `nft_is_approved`:
+3. Alice llama al método view `nft_is_approved`:
 
        near view nft nft_is_approved \
          '{ "token_id": "1", "approved_account_id": "bob" }'
 
-   The response:
+   La respuesta:
 
        true
 
-### 2. Approval with cross-contract call
+### 2. Aprobación con llamada cross-contrato
 
-Alice approves Market to transfer one of her tokens and passes `msg` so that NFT will call `nft_on_approve` on Market's contract. She probably does this via Market's frontend app which would know how to construct `msg` in a useful way.
+Alice aprueba a Mercado para transferir uno de sus tokens y pasa un `msg` para que NFT llame a `nft_on_approve` en el contrato Mercado. Ella probablemente hace esto desde la interfaz de la aplicación de Mercado que debería de saber como construir `msg` de una manera útil.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-1. Alice calls `nft_approve` to approve `market` to transfer her token, and passes a `msg`
-2. Since `msg` is included, `nft` will schedule a cross-contract call to `market`
-3. Market can do whatever it wants with this info, such as listing the token for sale at a given price. The result of this operation is returned as the promise outcome to the original `nft_approve` call.
+1. Alice llama a `nft_approve` para aprobar a `market` para que transfiera su token, y pasa un `msg`
+2. Como `msg` está incluído, `nft` agendará una llamada cross-contrato a `market`
+3. Mercado puede hacer lo que quiera con esta información, como listar el token a la venta a el precio dado. El resultado de esta operación es regresado como la salida de la promesa de la llamada original `nft_approve`.
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. Using near-cli:
+1. Usando near-cli:
 
        near call nft nft_approve '{
          "token_id": "1",
          "account_id": "market",
          "msg": "{\"action\": \"list\", \"price\": \"100\", \"token\": \"nDAI\" }"
        }' --accountId alice --depositYocto 1
+   
+   En este punto, near-cli esperará hasta que la cadena de la llamada cross-contrato se resuelva por completo, que también sería true si Alice usó una interfaz de Mercado que usa [near-api-js](https://docs.near.org/docs/develop/front-end/near-api-js). Aunque la parte de Alice está terminada, lo demás pasa detrás de escena.
 
-   At this point, near-cli will hang until the cross-contract call chain fully resolves, which would also be true if Alice used a Market frontend using [near-api-js](https://docs.near.org/docs/develop/front-end/near-api-js). Alice's part is done, though. The rest happens behind the scenes.
-
-2. `nft` schedules a call to `nft_on_approve` on `market`. Using near-cli notation for easy cross-reference with the above, this would look like:
+2. `nft` agenda una llaada a `nft_on_approve` en `market`. Usando la notación near-cli notation para una referencia cruzada fácil dado lo anterior, esto se vería como:
 
        near call market nft_on_approve '{
          "token_id": "1",
@@ -120,24 +120,24 @@ Alice approves Market to transfer one of her tokens and passes `msg` so that NFT
          "msg": "{\"action\": \"list\", \"price\": \"100\", \"token\": \"nDAI\" }"
        }' --accountId nft
 
-3. `market` now knows that it can sell Alice's token for 100 [nDAI](https://explorer.mainnet.near.org/accounts/6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near), and that when it transfers it to a buyer using `nft_transfer`, it can pass along the given `approval_id` to ensure that Alice hasn't changed her mind. It can schedule any further cross-contract calls it wants, and if it returns these promises correctly, Alice's initial near-cli call will resolve with the outcome from the final step in the chain. If Alice actually made this call from a Market frontend, the frontend can use this return value for something useful.
+3. `market` ahora sabe que puede enviar el token de Alice por 100 [nDAI](https://explorer.mainnet.near.org/accounts/6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near), y que cuando los transfiera a un comprador usando `nft_transfer`, puede pasar también el `approval_id` dado para asegurar que Alice no haya cambiado su opinión. Puede agendar todas las llamadas cross-contratos que quiera, y si regresa estas promesas correctamente, la llamada inicial de Alice usando near-cli se resolverá con la salida del paso final en la cadena. Si Alice sí hizo esta llamada desde la interfaz de Mercado, la interfaz puede usar este valor retornado para algo útil.
 
-### 3. Approval with cross-contract call, edge case
+### 3. Aprobación con llamada cross-contrato, caso extremo
 
-Alice approves Bazaar and passes `msg` again. Maybe she actually does this via near-cli, rather than using Bazaar's frontend, because what's this? Bazaar doesn't implement `nft_on_approve`, so Alice sees an error in the transaction result.
+Alice aprueba a Baazar y pasa un `msg` otra vez. Tal vez ella sí hace esto con near-cli, en lugar de usar la interfaz de Bazar, porque ¿qué es esto? Bazar no implementa `nft_on_approve`, así que Alice vee un error en el resultado de la transacción.
 
-Not to worry, though, she checks `nft_is_approved` and sees that she did successfully approve Bazaar, despite the error. She will have to find a new way to list her token for sale in Bazaar, rather than using the same `msg` shortcut that worked for Market.
+No hay de que preocuparse, sin embargo, revisa `nft_is_approved` y ve que ella exitosamente aprobó a Bazar, a pesar del error. Ella tendrá que encontrar una manera nueva de listar su token a la venta en Bazar, en vez de usar el mismo atajo de `msg` que funcionó para Mercado.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-1. Alice calls `nft_approve` to approve `bazaar` to transfer her token, and passes a `msg`.
-2. Since `msg` is included, `nft` will schedule a cross-contract call to `bazaar`.
-3. Bazaar doesn't implement `nft_on_approve`, so this call results in an error. The approval still worked, but Alice sees an error in her near-cli output.
-4. Alice checks if `bazaar` is approved, and sees that it is, despite the error.
+1. Alice llama a `nft_approve` para aprobar a `bazaar` para transferir su token, y pasa un `msg`.
+2. Como `msg` está incluído, `nft` agendará una llamada cross-contrato a `bazaar`.
+3. Bazar no implementa `nft_on_approve`, por lo que esta llamada resulta en un error. La aprobación funcionó de todos modos, pero Alice ve un error en su salida del near-cli.
+4. Alice revisa si `bazaar` fue aprobado, y ve que sí, a pesar del error.
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. Using near-cli:
+1. Usando near-cli:
 
        near call nft nft_approve '{
          "token_id": "1",
@@ -145,7 +145,7 @@ Not to worry, though, she checks `nft_is_approved` and sees that she did success
          "msg": "{\"action\": \"list\", \"price\": \"100\", \"token\": \"nDAI\" }"
        }' --accountId alice --depositYocto 1
 
-2. `nft` schedules a call to `nft_on_approve` on `market`. Using near-cli notation for easy cross-reference with the above, this would look like:
+2. `nft` agenda una llamada a `nft_on_approve` en `market`. Usando la notación near-cli notation para una referencia cruzada fácil dado lo anterior, esto se vería como:
 
        near call bazaar nft_on_approve '{
          "token_id": "1",
@@ -154,28 +154,27 @@ Not to worry, though, she checks `nft_is_approved` and sees that she did success
          "msg": "{\"action\": \"list\", \"price\": \"100\", \"token\": \"nDAI\" }"
        }' --accountId nft
 
-3. 💥 `bazaar` doesn't implement this method, so the call results in an error. Alice sees this error in the output from near-cli.
+3. 💥 `bazaar` no implementa este método, así que la llamada resulta en un error. Alice vee este error en la salida de near-cli.
 
-4. Alice checks if the approval itself worked, despite the error on the cross-contract call:
+4. Alice revisa si la aprobación funcionó, a pesar del error en la llamada cross-contrato:
 
        near view nft nft_is_approved \
          '{ "token_id": "1", "approved_account_id": "bazaar" }'
 
-   The response:
+   La respuesta:
 
        true
 
-### 4. Approval IDs
+### 4. IDs de aprobación
 
-Bob buys Alice's token via Market. Bob probably does this via Market's frontend, which will probably initiate the transfer via a call to `ft_transfer_call` on the nDAI contract to transfer 100 nDAI to `market`. Like the NFT standard's "transfer and call" function, [Fungible Token](../FungibleToken/Core.md)'s `ft_transfer_call` takes a `msg` which `market` can use to pass along information it will need to pay Alice and actually transfer the NFT. The actual transfer of the NFT is the only part we care about here.
+Bob compra el token de Alice a través de Mercado. Bob probablemente hace esto con la interfaz de Mercado, que probablemente iniciará la transferencia con una llamada a `ft_transfer_call` en el contrato nDAI para transferir 100 nDAI a `market`. Como en la función del estándar NFT "transfiere y llama", `ft_transfer_call` que pertenece a [Token Fungible](../FungibleToken/Core.md) toma un `msg` que `market` puede usar para pasar información de que tendrá que pagar a Alice y transferir el NFT. La transferencia del NFT en la única parte que nos interesa aquí.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-1. Bob signs some transaction which results in the `market` contract calling `nft_transfer` on the `nft` contract, as described above. To be trustworthy and pass security audits, `market` needs to pass along `approval_id` so that it knows it has up-to-date information.
+1. Bob firma alguna transacción que resulta en `market` llamando a `nft_transfer` en el contrato `nft`, como se describe arriba. Para ser confiables y pasar las auditorías de seguridad, `market` necesita de pasar `approval_id` para que sepa que tiene la información actualizada.
 
-**Technical calls**
-
-Using near-cli notation for consistency:
+**Llamadas técnicas**
+Usando la notación near-cli para mantener coherencia:
 
     near call nft nft_transfer '{
       "receiver_id": "bob",
@@ -183,17 +182,17 @@ Using near-cli notation for consistency:
       "approval_id": 2,
     }' --accountId market --depositYocto 1
 
-### 5. Approval IDs, edge case
+### 5. IDs de aprobación, caso extremo
 
-Bob transfers same token back to Alice, Alice re-approves Market & Bazaar, listing her token at a higher price than before. Bazaar is somehow unaware of these changes, and still stores `approval_id: 3` internally along with Alice's old price. Bob tries to buy from Bazaar at the old price. Like the previous example, this probably starts with a call to a different contract, which eventually results in a call to `nft_transfer` on `bazaar`. Let's consider a possible scenario from that point.
+Bob transfiere el mismo token de regreso a Alice, Alice vuelve a aprobar a Mercado y a Bazar, listando su token a un precio mayor al anterior. Bazar de alguna manera no sabe de estos cambios, y aún almacena internamente `approval_id: 3` al igual que el precio anterior de Alice. Bob trata de comprar de Bazar con el precio anterior. Como en el ejemplo anterior, esto probablemente empieza con una llamada a un contrato diferente, que eventualmente resulta en una llamada a `nft_transfer` en `bazaar`. Consideremos un escenario posible desde ese punto.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-Bob signs some transaction which results in the `bazaar` contract calling `nft_transfer` on the `nft` contract, as described above. To be trustworthy and pass security audits, `bazaar` needs to pass along `approval_id` so that it knows it has up-to-date information. It does not have up-to-date information, so the call fails. If the initial `nft_transfer` call is part of a call chain originating from a call to `ft_transfer_call` on a fungible token, Bob's payment will be refunded and no assets will change hands.
+Bob firma alguna transacción que resulta en `baazar` llamando a `nft_transfer` en el contrato `nft`, como se describió arriba. Para ser confiables y pasar las auditorías de seguridad, `baazar` necesita pasar `approval_id` para saber que tiene información actualizada. No tiene la información actualizada, así que la llamada falla. Si la llamada `nft_transfer` incial es parte de una cadena de llamadas originada por una llamada a `ft_transfer_call` en un token fungible, el pago de Bob será reembolsado y ningún activo cambiará de propietario.
 
-**Technical calls**
+**Llamadas técnicas**
 
-Using near-cli notation for consistency:
+Usando near-cli para mantener la coherencia:
 
     near call nft nft_transfer '{
       "receiver_id": "bob",
@@ -201,38 +200,37 @@ Using near-cli notation for consistency:
       "approval_id": 3,
     }' --accountId bazaar --depositYocto 1
 
-### 6. Revoke one
+### 6. Revoca uno
 
-Alice revokes Market's approval for this token.
+Alice revoca la aprobación de Mercado para este token.
 
-**Technical calls**
+**Llamadas técnicas**
 
-Using near-cli:
+Usando near-cli:
 
     near call nft nft_revoke '{
       "account_id": "market",
       "token_id": "1",
     }' --accountId alice --depositYocto 1
+Note que `market` no obtendrá una llamada cross-contrato en este caso. Los implementadores de la app Mercado deberían implementar una funcionalidad de tipo [cron](https://es.wikipedia.org/wiki/Cron_(Unix)) para intermintentemente revisar que Mercado tiene el acceso que esperan.
 
-Note that `market` will not get a cross-contract call in this case. The implementors of the Market app should implement [cron](https://en.wikipedia.org/wiki/Cron)-type functionality to intermittently check that Market still has the access they expect.
+### 7. Revoca todos
 
-### 7. Revoke all
+Alice revoca todas las aprobaciones para este token.
 
-Alice revokes all approval for this token.
+**Llamadas técnicas**
 
-**Technical calls**
-
-Using near-cli:
+Usando near-cli:
 
     near call nft nft_revoke_all '{
       "token_id": "1",
     }' --accountId alice --depositYocto 1
 
-Again, note that no previous approvers will get cross-contract calls in this case.
+Otra vez, note que los aprobadores anteriores no obtendrán llamadas cross-contrato en este caso.
 
-## Reference-level explanation
+## Explicación a nivel de referencia
 
-The `Token` structure returned by `nft_token` must include an `approvals` field, which is a map of account IDs to approval IDs. Using TypeScript's [Record type](https://www.typescriptlang.org/docs/handbook/utility-types.html#recordkeystype) notation:
+La estructura `Token` regresada por `nft_token` debe incluír el campo `approvals`, que es un mapa de IDs de cuenta a aprobar. Usando la notación [Record type](https://www.typescriptlang.org/docs/handbook/utility-types.html#recordkeystype) de TypeScript:
 
 ```diff
  type Token = {
@@ -242,7 +240,7 @@ The `Token` structure returned by `nft_token` must include an `approvals` field,
  };
 ```
 
-Example token data:
+Ejemplo de datos de token:
 
 ```json
 {
@@ -255,21 +253,21 @@ Example token data:
 }
 ```
 
-### What is an "approval ID"?
+### ¿Qué es un "ID de aprobación"?
 
-This is a unique number given to each approval that allows well-intentioned marketplaces or other 3rd-party NFT resellers to avoid a race condition. The race condition occurs when:
+Es un número único dado para cada aprobación que permite marketplaces bien intencionados u otros revendedores de NFT de terceros evitar una condición de carrera. La condición de carrera ocurre cuando:
 
-1. A token is listed in two marketplaces, which are both saved to the token as approved accounts.
-2. One marketplace sells the token, which clears the approved accounts.
-3. The new owner sells back to the original owner.
-4. The original owner approves the token for the second marketplace again to list at a new price. But for some reason the second marketplace still lists the token at the previous price and is unaware of the transfers happening.
-5. The second marketplace, operating from old information, attempts to again sell the token at the old price.
+1. Un token es listado en dos marketplaces, que los dos son almacenados en el token como cuentas aprobadas.
+2. Un marketplace vende el token, que lo remueve de las cuentas aprobadas.
+3. El nuevo dueño vende todo de regreso al dueño original.
+4. El dueño original aprueba otra vez el token para el segundo marketplace para que lo liste a un precio nuevo. Pero por alguna razón el segundo marketplace todavía lista el token con el precio anterior y no sabe de las transferencias que están pasando.
+5. El segundo marketplace, operando con información antigua, trata de otra vez vender el token al precio anterior.
 
-Note that while this describes an honest mistake, the possibility of such a bug can also be taken advantage of by malicious parties via [front-running](https://defi.cx/front-running-ethereum/).
+Note que mientras esto describe un error honesto, la posibilidad de este bug también puede ser ventajosa para partes maliciosas a través del [front-running](https://defi.cx/front-running-ethereum/).
 
-To avoid this possibility, the NFT contract generates a unique approval ID each time it approves an account. Then when calling `nft_transfer` or `nft_transfer_call`, the approved account passes `approval_id` with this value to make sure the underlying state of the token hasn't changed from what the approved account expects.
+Para evitar esta posibilidad, el contrato NFT genera un ID de aprobación único cada vez que aprueba una cuenta. Luego cuando llamamos a `nft_transfer` o a `nft_transfer_call`, la cuenta aprobada pasa el `approval_id` con este valor para asegurarse que el estado subyacente del token no haya cambiado de lo que espera la cuenta aprobada.
 
-Keeping with the example above, say the initial approval of the second marketplace generated the following `approvals` data:
+Quedándonos con el ejemplo anterior, digamos que la aprobación incial del segundo marketplace generó los datos de `aprovals` siguientes:
 
 ```json
 {
@@ -282,7 +280,7 @@ Keeping with the example above, say the initial approval of the second marketpla
 }
 ```
 
-But after the transfers and re-approval described above, the token might have `approvals` as:
+Pero después de las transacciones y re-aprobaciones descritas arriba, el token tal vez tenga los `approvals` como:
 
 ```json
 {
@@ -294,7 +292,7 @@ But after the transfers and re-approval described above, the token might have `a
 }
 ```
 
-The marketplace then tries to call `nft_transfer`, passing outdated information:
+El marketplace luego trata de llamar a `nft_transfer`, pasándole información antigua:
 
 ```bash
 # oops!
@@ -302,88 +300,87 @@ near call nft-contract.near nft_transfer '{ "approval_id": 2 }'
 ```
 
 
-### Interface
+### Interfaz
 
-The NFT contract must implement the following methods:
+El contrato NFT debe implementar los métodos siguientes:
 
 ```ts
-/******************/
-/* CHANGE METHODS */
-/******************/
-
-// Add an approved account for a specific token.
+/*********************/
+/* MÉTODOS DE CAMBIO */
+/*********************/
+// Agregar una cuenta aprobada para un token específico
 //
-// Requirements
-// * Caller of the method must attach a deposit of at least 1 yoctoⓃ for
-//   security purposes
-// * Contract MAY require caller to attach larger deposit, to cover cost of
-//   storing approver data
-// * Contract MUST panic if called by someone other than token owner
-// * Contract MUST panic if addition would cause `nft_revoke_all` to exceed
-//   single-block gas limit. See below for more info.
-// * Contract MUST increment approval ID even if re-approving an account
-// * If successfully approved or if had already been approved, and if `msg` is
-//   present, contract MUST call `nft_on_approve` on `account_id`. See
-//   `nft_on_approve` description below for details.
+// Requerimientos
+// * El llamante del método debe adjuntar un depósito de al menos 1 yoctoⓃ por
+//   razones de seguridad
+// * El contrato PUEDE requerir al llamante adjuntarr un depósito más grande, para cubrir
+//   el costo del almacenamiento de los datos del aprobador
+// * El contrato DEBE entrar en pánico si fue llamado por alguien que no sea el propietario del token
+// * El contrato DEBE de entrar en pánico si la adición causa que `nft_revoke_all` exceda
+//   el límite de gas de un solo bloque. Vea a continuación para más información.
+// * El contrato DEBE de incrementar el ID de aprobación incluso si re-aprueba una cuenta
+// * Si fue exitosamente aprobada o si ya estaba aprobada, y si `msg` está presente,
+//   el contrato DEBE de llamar `nft_on_approv` en `account_id`. Vea la descripción de
+//   `nft_on_approve` a continuación para más detalles.
 //
 // Arguments:
-// * `token_id`: the token for which to add an approval
-// * `account_id`: the account to add to `approvals`
-// * `msg`: optional string to be passed to `nft_on_approve`
+// * `token_id`: el token por el cual se agrega una aprobación
+// * `account_id`: la cuenta a agregar `approvals`
+// * `msg`: cadena opcional a pasar a `nft_on_approve`
 //
-// Returns void, if no `msg` given. Otherwise, returns promise call to
-// `nft_on_approve`, which can resolve with whatever it wants.
+// Regresa void, si no hay `msg`. De otra manera, regresa una llamada de promesa a
+// `nft_on_approve`, que puede resolver con cualquier cosa que quiera
 function nft_approve(
   token_id: TokenId,
   account_id: string,
   msg: string|null,
 ): void|Promise<any> {}
 
-// Revoke an approved account for a specific token.
+// Revocar una cuenta aprobada para un token específico.
 //
 // Requirements
-// * Caller of the method must attach a deposit of 1 yoctoⓃ for security
-//   purposes
-// * If contract requires >1yN deposit on `nft_approve`, contract
-//   MUST refund associated storage deposit when owner revokes approval
-// * Contract MUST panic if called by someone other than token owner
+// * El llamante del método debe adjuntar un depósito de al menos 1 yoctoⓃ por
+//   razones de seguridad
+// * Si el contrato requiere un depósito >1yN en `nft_approve`, el contrato
+//   DEBE reembolsar el depósito de almacenamiento asociado cuando el dueño revoca la aprobación
+// * El contrato DEBE entrar en pánico si fue llamado por alguien que no sea el propietario del token
 //
-// Arguments:
-// * `token_id`: the token for which to revoke an approval
-// * `account_id`: the account to remove from `approvals`
+// Argumentos:
+// * `token_id`: el token por el cual revocar una aprobación
+// * `account_id`: la cuenta que será removida de `approvals`
 function nft_revoke(
   token_id: string,
   account_id: string
 ) {}
 
-// Revoke all approved accounts for a specific token.
+// Revoca todas las cuentas aprobadas para un token específico.
 //
 // Requirements
-// * Caller of the method must attach a deposit of 1 yoctoⓃ for security
-//   purposes
-// * If contract requires >1yN deposit on `nft_approve`, contract
-//   MUST refund all associated storage deposit when owner revokes approvals
-// * Contract MUST panic if called by someone other than token owner
+// * El llamante del método debe adjuntar un depósito de al menos 1 yoctoⓃ por
+//   razones de seguridad
+// * Si el contrato requiere un depósito >1yN en `nft_approve`, el contrato
+//   DEBE reembolsar el depósito de almacenamiento asociado cuando el dueño revoca la aprobación
+// * El contrato DEBE entrar en pánico si fue llamado por alguien que no sea el propietario del token
 //
 // Arguments:
-// * `token_id`: the token with approvals to revoke
+// * `token_id`: el token con las aprobaciones a revocar
 function nft_revoke_all(token_id: string) {}
 
 /****************/
-/* VIEW METHODS */
+/* MÉTODOS VIEW */
 /****************/
 
-// Check if a token is approved for transfer by a given account, optionally
-// checking an approval_id
+// Revisar si un token fue aprobado para transferir por una cuenta dada, opcionalmente
+// revisando un approval_id
 //
-// Arguments:
-// * `token_id`: the token for which to revoke an approval
-// * `approved_account_id`: the account to check the existence of in `approvals`
-// * `approval_id`: an optional approval ID to check against current approval ID for given account
+// Argumentos:
+// * `token_id`: el token por el cual se revocará la aprobación
+// * `approved_account_id`: la cuenta para revisar la existencia en `approvals`
+// * `approval_id`: un ID de aprobación opciona para compara con el ID de aprovación actual para una cuenta dada
 //
-// Returns:
-// if `approval_id` given, `true` if `approved_account_id` is approved with given `approval_id`
-// otherwise, `true` if `approved_account_id` is in list of approved accounts
+// Regresa:
+// si el `approval_id` dado, `true` si `approved_account_id` es aprobado con el `approval_id` dado
+// de otra manera, `true` si `approved_account_id` está en la lista con las cuentas aprobadas
 function nft_is_approved(
   token_id: string,
   approved_account_id: string,
@@ -391,42 +388,42 @@ function nft_is_approved(
 ): boolean {}
 ```
 
-### Why must `nft_approve` panic if `nft_revoke_all` would fail later?
+### ¿Por qué `nft_approve` debe de entrar en pánico si `nft_revoke_all` llega a fallar después?
 
-In the description of `nft_approve` above, it states:
+En la descripción de `nft_approve` anterior, se dice:
 
-    Contract MUST panic if addition would cause `nft_revoke_all` to exceed
-    single-block gas limit.
+    El contrato DEBE de entrar en pánico si la adición causa que `nft_revoke_all` exceda
+    el límite de gas de un solo bloque.
 
-What does this mean?
+¿Qué significa esto?
 
-First, it's useful to understand what we mean by "single-block gas limit". This refers to the [hard cap on gas per block at the protocol layer](https://docs.near.org/docs/concepts/gas#thinking-in-gas). This number will increase over time.
+Primero, es útil entender que lo que queremo decir cuando decimos "single-block gas limit". Esto se refiere a [límite máximo de gas por bloque en la capa de protocolo](https://docs.near.org/docs/concepts/gas#thinking-in-gas). Este número incrementará con el tiempo.
 
-Removing data from a contract uses gas, so if an NFT had a large enough number of approvals, `nft_revoke_all` would fail, because calling it would exceed the maximum gas.
+Remover datos de un contrato usa gas, así que si un NFT tiene un número suficientemente largo de aprobaciones, `nft_revoke_all` fallaría, porque llamarlo excedería el gas máximo
 
-Contracts must prevent this by capping the number of approvals for a given token. However, it is up to contract authors to determine a sensible cap for their contract (and the single block gas limit at the time they deploy). Since contract implementations can vary, some implementations will be able to support a larger number of approvals than others, even with the same maximum gas per block.
+Los contratos deben de prevenir esto capturando el número de aprobaciones por un token dado. Sin embargo, depende del autor del contrato el determinar un límite sensible para su contrato (y el límite de gas para un bloque al momento que lo desplieguen). Como las implementaciones de los contratos pueden variar, algunas de ellas serán capaces de soportar un número mayor de aprobaciones que otras, incluso con el mismo límite gas por bloque.
 
-Contract authors may choose to set a cap of something small and safe like 10 approvals, or they could dynamically calculate whether a new approval would break future calls to `nft_revoke_all`. But every contract MUST ensure that they never break the functionality of `nft_revoke_all`.
+Los autores de contratos pueden escoger el establecer un límite bajo y seguro como 10 aprobaciones, o ellos podrían calcular dinámicamente si una aprobación nueva rompería las llamadas futuras a `nft_revoke_all`. Pero cada contrato DEBE asegurar que nunca se romple la funcionalidad de `nft_revoke_all`.
 
 
-### Approved Account Contract Interface
+### Interfaz de contrato de cuenta aprobada
 
-If a contract that gets approved to transfer NFTs wants to, it can implement `nft_on_approve` to update its own state when granted approval for a token:
+Si un contrato es aprobado para transferir NFTs, puede implementar `nft_on_approve` para actualizar su propio estado cuando se le da la aprobación para un token:
 
 ```ts
-// Respond to notification that contract has been granted approval for a token.
+// Responder a la notificación de cuando el contrato ha sido aprobado para un token.
 //
-// Notes
-// * Contract knows the token contract ID from `predecessor_account_id`
+// Notas
+// * El contrato sabe el ID del contrato del token por `predecessor_account_id`
 //
-// Arguments:
-// * `token_id`: the token to which this contract has been granted approval
-// * `owner_id`: the owner of the token
-// * `approval_id`: the approval ID stored by NFT contract for this approval.
-//   Expected to be a number within the 2^53 limit representable by JSON.
-// * `msg`: specifies information needed by the approved contract in order to
-//    handle the approval. Can indicate both a function to call and the
-//    parameters to pass to that function.
+// Argumentos:
+// * `token_id`: el token el cual aprobó a este contrato
+// * `owner_id`: el dueño del token
+// * `approval_id`: el ID de la aprobación guardado por el contrato NFT para esta aprobación.
+//    Se espera que sea un número dentro del límite de 2^53 representable por JSON.
+// * `msg`: especifica la información necesitada por el contrato aprobado para poder
+//    manejar la aprobación. Puede indicar una función a llama y los
+//    parámetros a pasar a esa función
 function nft_on_approve(
   token_id: TokenId,
   owner_id: string,
@@ -435,10 +432,10 @@ function nft_on_approve(
 ) {}
 ```
 
-Note that the NFT contract will fire-and-forget this call, ignoring any return values or errors generated. This means that even if the approved account does not have a contract or does not implement `nft_on_approve`, the approval will still work correctly from the point of view of the NFT contract.
+Note que el contrato NFT va a ejecutar y olvidar esta llamada, ignorando cualquier valor regresado o errores generados. Esto significa que incluso si la cuenta aprobada no tiene un contrato o no implementa `nft_on_approve`, la aprobación seguirá funcionando correctamente desde el punto de vista de un contrato NFT.
 
-Further note that there is no parallel `nft_on_revoke` when revoking either a single approval or when revoking all. This is partially because scheduling many `nft_on_revoke` calls when revoking all approvals could incur prohibitive [gas fees](https://docs.near.org/docs/concepts/gas). Apps and contracts which cache NFT approvals can therefore not rely on having up-to-date information, and should periodically refresh their caches. Since this will be the necessary reality for dealing with `nft_revoke_all`, there is no reason to complicate `nft_revoke` with an `nft_on_revoke` call.
+También note que no hay un `nft_on_revoke` paralelo cuando se revocan una sola aprobación o de cuando se revocan todas. Esto es parcialmente causado porque agendar muchas llamadas `nft_on_revoke` cuando se revocan todas las aprobaciones podría incurrir en [tarifas de gas](https://docs.near.org/docs/concepts/gas) prohibitivas. Apps y contratos que guardan en cache las aprobaciones NFT pueden entonces no depender de tener información actualizada, y deberían actualizar sus caches periódicamente. Como esta será la realidad necesaria para lidiar con `nft_revoke_all`, no hay razón para complicar `nft_revoke` con una llamada `nft_on_revoke`.
 
-### No incurred cost for core NFT behavior
+### Costos no incurridos para el comportamiento básico NFT
 
-NFT contracts should be implemented in a way to avoid extra gas fees for serialization & deserialization of `approvals` for calls to `nft_*` methods other than `nft_token`. See `near-contract-standards` [implementation of `ft_metadata` using `LazyOption`](https://github.com/near/near-sdk-rs/blob/c2771af7fdfe01a4e8414046752ee16fb0d29d39/examples/fungible-token/ft/src/lib.rs#L71) as a reference example.
+Los contratos NFT deberían de ser implementados de una manera que se eviten tarifas de gas extras por la serialización y deserialización de `approvals` para llamadas a métodos `nft_*` que no sea `nft_token`. Vea[implementación de `ft_metadata` usando `LazyOption`](https://github.com/near/near-sdk-rs/blob/c2771af7fdfe01a4e8414046752ee16fb0d29d39/examples/fungible-token/ft/src/lib.rs#L71) de `near-contract-standards` como ejemplo de referencia.
