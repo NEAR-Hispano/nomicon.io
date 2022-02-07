@@ -1,42 +1,42 @@
-# Storage Management ([NEP-145](https://github.com/near/NEPs/discussions/145))
+# Gestión de almacenamiento ([NEP-145](https://github.com/near/NEPs/discussions/145))
 
-Version `1.0.0`
+Versión `1.0.0`
 
-NEAR uses [storage staking] which means that a contract account must have sufficient balance to cover all storage added over time. This standard provides a uniform way to pass storage costs onto users. It allows accounts and contracts to:
+NEAR usa [stakeo de storage] que significa que una cuenta de contrato debe tener el balance suficiente para cubrir todo el alamacenamiento agregado con el tiempo. Este estándar proporciona una manera uniforma para pasar el costo del almacenamiento a los usuarios. Permite a las cuentas y contratos:
 
-1. Check an account's storage balance.
-2. Determine the minimum storage needed to add account information such that the account can interact as expected with a contract.
-3. Add storage balance for an account; either one's own or another.
-4. Withdraw some storage deposit by removing associated account data from the contract and then making a call to remove unused deposit.
-5. Unregister an account to recover full storage balance.
+1. Revisar el balance de almacenamiento de una cuenta.
+2. Determinar el almacenamiento mínimo para agregar información de la cuenta tal que puede interactuar como se espera con un contrato.
+3. Agregar balance de almacenamiento para una cuenta; si bien a sí misma o a otra.
+4. Retirar algún depósito de almacenamiento removiendo información de la cuenta asociada de un contrato y después haciendo una llamada para remover el depósito no usado.
+5. Cancelar el registro de una cuenta para recuperar el saldo de almacenamiento completo.
 
-  [storage staking]: https://docs.near.org/docs/concepts/storage-staking
+  [stakeo de storage]: https://docs.near.org/docs/concepts/storage-staking
 
-Prior art:
+Estado de la técnica:
 
-- A previous fungible token standard ([NEP-21](https://github.com/near/NEPs/pull/21)) highlighting how [storage was paid](https://github.com/near/near-sdk-rs/blob/1d3535bd131b68f97a216e643ad1cba19e16dddf/examples/fungible-token/src/lib.rs#L92-L113) for when increasing the allowance of an escrow system.
+- Un estándar anterior de token fungible ([NEP-21](https://github.com/near/NEPs/pull/21)) resultando como [el almacenamiento se pagó](https://github.com/near/near-sdk-rs/blob/1d3535bd131b68f97a216e643ad1cba19e16dddf/examples/fungible-token/src/lib.rs#L92-L113) para cuando se aumenta el allowance de un sistema escrow.
 
-## Example scenarios
+## Escenarios de ejemplo
 
-To show the flexibility and power of this standard, let's walk through two example contracts.
+Para mostrar la flexibilidad y el poder de este estándar, veamos dos contratos de ejemplo.
 
-1. A simple Fungible Token contract which uses Storage Management in "registration only" mode, where the contract only adds storage on a user's first interaction.
-   1. Account registers self
-   2. Account registers another
-   3. Unnecessary attempt to re-register
-   4. Force-closure of account
-   5. Graceful closure of account
-2. A social media contract, where users can add more data to the contract over time.
-   1. Account registers self with more than minimum required
-   2. Unnecessary attempt to re-register using `registration_only` param
-   3. Attempting to take action which exceeds paid-for storage; increasing storage deposit
-   4. Removing storage and reclaiming excess deposit
+1. Un contrato de Token Fungible simple que usa la Gestión de Almacenamiento en un modo de "sólo registro", donde el contrato solo añade almacenamiento en la primera interacción de un usuario.
+   1. La cuenta se registra a sí misma
+   2. La cuenta registra a otra
+   3. Intento innecesario para volver a registrar
+   4. Forzar el cierre de la cuenta
+   5. La cuenta cierra correctamente el registro
+2. Un contrato de redes sociales, donde lo usuarios pueden agregar más información al contrato a lo largo del tiempo.
+   1. La cuenta se registra a sí misma con más del mínimo requerido
+   2. Intento innecesario para volver a registrar usando el parámetro `registration_only`
+   3. Intento de toma de acción que excede el almacenamiento que ha sido pagado; incrementando el depósito de almacenamiento
+   4. Remueve almacenamiento y reclama el exceso del depósito
 
-### Example 1: Fungible Token Contract
+### Ejemplo 1: Contraton de Token Fungible
 
-Imagine a [fungible token](Tokens/FungibleTokenCore.md) contract deployed at `ft`. Let's say this contract saves all user balances to a Map data structure internally, and adding a key for a new user requires 0.00235Ⓝ. This contract therefore uses the Storage Management standard to pass this cost onto users, so that a new user must effectively pay a registration fee to interact with this contract of 0.00235Ⓝ, or 2350000000000000000000 yoctoⓃ ([yocto](https://www.metricconversion.us/prefixes.htm) = 10<sup>-24</sup>).
+Imagina un contrato de [token fungible](Tokens/FungibleTokenCore.md) desplegado en `ft`. Digamos que este contrato guarda todos los balances de usuario en una estructura de Mapa internamente, y agregar una llave para un un usuario nuevo requiere 0.00235Ⓝ. Este contrato por lo tanto usa el estándar de Gestión de Almacenamiento para pasar el costo a los usuarios, para que así un usuario nuevo pague una tarifa de registro, para interactuar con este contrato, de 0.00235Ⓝ, o 2350000000000000000000 yoctoⓃ ([yocto](https://www.metricconversion.us/prefixes.htm) = 10<sup>-24</sup>).
 
-For this contract, `storage_balance_bounds` will be:
+Para este contrato, `storage_balance_bounds` será:
 
 ```json
 {
@@ -45,46 +45,46 @@ For this contract, `storage_balance_bounds` will be:
 }
 ```
 
-This means a user must deposit 0.00235Ⓝ to interact with this contract, and that attempts to deposit more than this will have no effect (attached deposits will be immediately refunded).
+Esto significa que un usuario debe depositar 0.00235Ⓝ para interactuar con este contrato, y si intenta depositar más de eso no tendrá efecto alguno (los depósitos agregados serán inmediatamente reembolsados).
 
-Let's follow two users, Alice with account `alice` and Bob with account `bob`, as they interact with `ft` through the following scenarios:
+Vamos a seguir a dos usuarios, a Alice con la cuenta `alice` y Bob con la cuenta `bob`, y ellos interactúan con `ft` a través de los siguientes escenarios:
 
-1. Alice registers herself
-2. Alice registers Bob
-3. Alice tries to register Bob again
-4. Alice force-closes her account
-5. Bob gracefully closes his account
+1. Alice se registra a sí misma
+2. Alice registra a Bob
+3. Alice trata de registrar a Bob otra vez
+4. Alice forza el cierre de su cuenta
+5. Bob cierra su cuenta sin problema
 
-#### 1. Account pays own registration fee
+#### 1. La cuenta paga su tarifa de registro
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-1. Alice checks if she is registered with the `ft` contract.
-2. Alice determines the needed registration fee to register with the `ft` contract.
-3. Alice issues a transaction to deposit Ⓝ for her account.
+1. Alice revisa si está registrada con el contrato `ft`.
+2. Alice determina la tarifa de registro necesaria para registrarse con el contrato `ft`.
+3. Alice emite una transacción para depositar Ⓝ a su cuenta.
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. Alice queries a view-only method to determine if she already has storage on this contract with `ft::storage_balance_of({"account_id": "alice"})`. Using [NEAR CLI](https://docs.near.org/docs/tools/near-cli) to make this view call, the command would be:
+1. Alice consulta un método de solo-vista para determinar si ella tiene almacenamiento en este contrato con `ft::storage_balance_of({"account_id": "alice"})`. Usando [NEAR CLI](https://docs.near.org/docs/tools/near-cli) para hacer esta llamada view, el comando sería:
 
        near view ft storage_balance_of '{"account_id": "alice"}'
 
-   The response:
+   La respuesta:
 
        null
 
-2. Alice uses [NEAR CLI](https://docs.near.org/docs/tools/near-cli) to make a view call.
+2. Alice usa [NEAR CLI](https://docs.near.org/docs/tools/near-cli) para hacer la llamada view.
 
        near view ft storage_balance_bounds
 
-   As mentioned above, this will show that both `min` and `max` are both 2350000000000000000000 yoctoⓃ.
+   Como se mencinó anteriormente, esto mostrará que los valores de `min` y `max` son 2350000000000000000000 yoctoⓃ.
 
-3. Alice converts this yoctoⓃ amount to 0.00235 Ⓝ, then calls `ft::storage_deposit` with this attached deposit. Using NEAR CLI:
+3. Alice convierte esta cantidad de yoctoⓃ a 0.00235 Ⓝ, después llama `ft::storage_deposit` con este depósito ligado. Usando NEAR CLI:
 
        near call ft storage_deposit '' \
          --accountId alice --amount 0.00235
 
-   The result:
+   El resultado:
 
        {
          total: "2350000000000000000000",
@@ -92,91 +92,89 @@ Let's follow two users, Alice with account `alice` and Bob with account `bob`, a
        }
 
 
-#### 2. Account pays for another account's storage
+#### 2. La cuenta paga por el almacenamiento de otra cuenta
 
-Alice wishes to eventually send `ft` tokens to Bob who is not registered. She decides to pay for Bob's storage.
+Alice desea enviar eventualmente a `ft` tokens para Bob que no está registrado. Ella decide pagar por el almacenamiento de Bob.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-Alice issues a transaction to deposit Ⓝ for Bob's account.
+Alice emite una transacción para depostiar Ⓝ para a cuenta de Bob.
 
-**Technical calls**
-
-Alice calls `ft::storage_deposit({"account_id": "bob"})` with the attached deposit of '0.00235'. Using NEAR CLI the command would be:
+**Llamadas técnicas**
+Alice llama `ft::storage_deposit({"account_id": "bob"})` con el depósito ligado de '0.00235'. Usando NEAR CLI el comando sería:
 
     near call ft storage_deposit '{"account_id": "bob"}' \
       --accountId alice --amount 0.00235
 
-The result:
+El resultado:
 
     {
       total: "2350000000000000000000",
       available: "0"
     }
 
-#### 3. Unnecessary attempt to register already-registered account
+#### 3. Intento inncesario de registrar a una cuenta ya registrada
 
-Alice accidentally makes the same call again, and even misses a leading zero in her deposit amount.
+Alice accidentalmente hace la misma llamada, e incluso omite un cero inicial en la cantidad de depósito.
 
     near call ft storage_deposit '{"account_id": "bob"}' \
       --accountId alice --amount 0.0235
 
-The result:
+El resultado:
 
     {
       total: "2350000000000000000000",
       available: "0"
     }
 
-Additionally, Alice will be refunded the 0.0235Ⓝ she attached, because the `storage_deposit_bounds.max` specifies that Bob's account cannot have a total balance larger than 0.00235Ⓝ.
+Adicionalmente, se le reembolsarán los 0.0235Ⓝ que ella agregó, porque el `storage_deposit_bounds.max` especifica que la cuenta de Bob no puede tener un balance total mayor a 0.00235Ⓝ.
 
-#### 4. Account force-closes registration
+#### 4. La cuenta forza el cierre del regitro
 
-Alice decides she doesn't care about her `ft` tokens and wants to forcibly recover her registration fee. If the contract permits this operation, her remaining `ft` tokens will either be burned or transferred to another account, which she may or may not have the ability to specify prior to force-closing.
+Alice decide que no importan sus tokens en `ft` y quiere recuperar su tarifa de registro forzosamente. Si el contrato permite esta operación, los tokens `ft` remanentes serán quemados o transferidos a otra cuenta, que ella podría o no podría tener la habilidad de especiicar antes de el cierre forzado.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-Alice issues a transaction to unregister her account and recover the Ⓝ from her registration fee. She must attach 1 yoctoⓃ, expressed in Ⓝ as `.000000000000000000000001`.
+Alice emite una transacción para anular el registro de su cuenta y recuperar los Ⓝ de su tarifa de registro. Ella de agregar 1 yoctoⓃ, expresado en Ⓝ como `.000000000000000000000001`.
 
-**Technical calls**
-
-Alice calls `ft::storage_unregister({"force": true})` with a 1 yoctoⓃ deposit. Using NEAR CLI the command would be:
+**Llamadas técnicas**
+Alice llama a `ft::storage_unregister({"force": true})` con un depósito de 1 yoctoⓃ. Usando NEAR CLI el comando sería:
 
     near call ft storage_unregister '{ "force": true }' \
       --accountId alice --depositYocto 1
 
-The result:
+El resultado:
 
     true
 
-#### 5. Account gracefully closes registration
+#### 5. La cuenta cierra correctamente el registro
 
-Bob wants to close his account, but has a non-zero balance of `ft` tokens.
+Bob quiere cerrar su cuenta, pero tiene un balance diferente de cero de tokens `ft`.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-1. Bob tries to gracefully close his account, calling `storage_unregister()` without specifying `force=true`. This results in an intelligible error that tells him why his account can't yet be unregistered gracefully.
-2. Bob sends all of his `ft` tokens to a friend.
-3. Bob retries to gracefully close his account. It works.
+1. Bob trata de cerrar correctamente su cuenta, llamando a `storage_unregister()` sin especificar `force=true`. Esto resulta en un error inteligible que le dice por qué no se puede anular aún el registro de su cuenta.
+2. Bob manda todos su tokens `ft` a un amigo.
+3. Bob vuelve a tratar de cerrar su cuenta correctamente. Funciona.
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. Bob calls `ft::storage_unregister()` with a 1 yoctoⓃ deposit. Using NEAR CLI the command would be:
+1. Bob llama a `ft::storage_unregister()` con un depósito de 1 yoctoⓃ. Usando NEAR CLI el comando sería:
 
        near call ft storage_unregister '' \
          --accountId bob --depositYocto 1
 
-   It fails with a message like "Cannot gracefully close account with positive remaining balance; bob has balance N"
+   Falla con un mensaje como "No se puede cerrar una cuenta correctamente con un balance positivo remanente; bob tiene un balance N"
 
-2. Bob transfers his tokens to a friend using `ft_transfer` from the [Fungible Token Core](Tokens/FungibleTokenCore.md) standard.
+2. Bob transfiere sus tokens a un amigo usando `ft_transfer` del estándar [Núcleo de token fungible](Tokens/FungibleTokenCore.md).
 
-3. Bob tries the call from Step 1 again. It works.
+3. Bob trata de la llamada del paso 1 otra vez. Funciona
 
-### Example 2: Social Media Contract
+### Ejemplo 2: Contrato de redes sociales
 
-Imagine a social media smart contract which passes storage costs onto users for posts and follower data. Let's say this this contract is deployed at account `social`. Like the Fungible Token contract example above, the `storage_balance_bounds.min` is 0.00235, because this contract will likewise add a newly-registered user to an internal Map. However, this contract sets no `storage_balance_bounds.max`, since users can add more data to the contract over time and must cover the cost for this storage.
+Imagina un contrato inteligente de redes sociales que pasa el costo del almacenamiento a los usuarios para la información de publicaciones y seguidores. Digamos que este contrato está desplegado en la cuenta `social`. Como en el ejemplo de contrato de Token Fungible anterior, el `storage_balance_bounds.min` es 0.00235, porque este contrato también añadirá un usuario recientemente registrado a un Mapa interno. Sin embargo, este contrato no establece un `storage_balance_bounds.max`, como los usuarios pueden agregar más información al contrato a lo largo del tiempo y debe de cubrir el costo por este almacenamiento.
 
-So for this contract, `storage_balance_bounds` will return:
+Así que para este contrato, `storage_balance_bounds` regresará:
 
 ```json
 {
@@ -184,143 +182,141 @@ So for this contract, `storage_balance_bounds` will return:
   "max": null
 }
 ```
+Sigamos a un usuario, Alice con la cuenta `alice`, mientras ella interactúa con `social` a través de los siguientes escenarios:
 
-Let's follow a user, Alice with account `alice`, as she interacts with `social` through the following scenarios:
+1. Registro
+2. Intento innecesario de volver a registrar usando el parámetro `registration_only`
+3. Intento de tomar acción que exceda el almacenamiento ya pagado; incrementando el depósito de almacenamiento
+4. Remosión del almacenamiento y reclamo del depósito excedente
 
-1. Registration
-2. Unnecessary attempt to re-register using `registration_only` param
-3. Attempting to take action which exceeds paid-for storage; increasing storage deposit
-4. Removing storage and reclaiming excess deposit
+#### 1. La cuenta se registra con `social`
 
-#### 1. Account registers with `social`
+**Explicación de alto nivel**
 
-**High-level explanation**
+Alice emite una transacción para depositar Ⓝ para su cuenta. Mientras que el `storage_balance_bounds.min` para este contrato es 0.00235Ⓝ, la interfaz que ella usa sugiere agregar 0.1Ⓝ, para que así ella pueda agregar información inmediatamente a la aplicación, en lugar de *solo* registrarse.
 
-Alice issues a transaction to deposit Ⓝ for her account. While the `storage_balance_bounds.min` for this contract is 0.00235Ⓝ, the frontend she uses suggests adding 0.1Ⓝ, so that she can immediately start adding data to the app, rather than *only* registering.
+**Llamadas técnicas**
 
-**Technical calls**
-
-Using NEAR CLI:
+Usando NEAR CLI:
 
     near call social storage_deposit '' \
       --accountId alice --amount 0.1
 
-The result:
+El resultado:
 
     {
       total: '100000000000000000000000',
       available: '97650000000000000000000'
     }
 
-Here we see that she has deposited 0.1Ⓝ and that 0.00235 of it has been used to register her account, and is therefore locked by the contract. The rest is available to facilitate interaction with the contract, but could also be withdrawn by Alice by using `storage_withdraw`.
+Aquí vemos que ella ha depositado 0.1Ⓝ y que 0.00235 de esa cantidad fue usado para registrar su cuenta, y es entonces retenido por el contrato. El resto está disponible para facilitar la interacción con el contrato, pero también puede ser retirado por Alice usando `storage_withdraw`.
 
-#### 2. Unnecessary attempt to re-register using `registration_only` param
+#### 2. Intento innecesario para volver a registrar usando el parámetro `registration_only`
 
-**High-level explanation**
+**Explicación de alto nivel**
+Alice no puede recordar si ella ya se registró y reenvió la llamada, usando el parámetro `registration_only` para asegurarse de que no agregue otros 0.1Ⓝ.
 
-Alice can't remember if she already registered and re-sends the call, using the `registration_only` param to ensure she doesn't attach another 0.1Ⓝ.
+**Llamadas técnicas**
 
-**Technical calls**
-
-Using NEAR CLI:
+Usando NEAR CLI:
 
     near call social storage_deposit '{"registration_only": true}' \
       --accountId alice --amount 0.1
 
-The result:
+El resultado:
 
     {
       total: '100000000000000000000000',
       available: '97650000000000000000000'
     }
 
-Additionally, Alice will be refunded the extra 0.1Ⓝ that she just attached. This makes it easy for other contracts to always attempt to register users while performing batch transactions without worrying about errors or lost deposits.
+Adicionalmente, Alice se le reembolsarán los 0.1Ⓝ extra que ella agregó. Esto facilita a los otros contratos siempre intentar registrar usuarios mientrar realizan transacciones por lotes sin preocuparse de errores o depósitos perdidos.
 
-Note that if Alice had not included `registration_only`, she would have ended up with a `total` of  0.2Ⓝ.
+Note que Alice no incluyó `registration_only`, ella hubiera terminado con un `total` de 0.2Ⓝ.
 
-#### 3. Account increases storage deposit
+#### 3. La cuenta incrementa el depósito del almacenamiento
 
-Assumption: `social` has a `post` function which allows creating a new post with free-form text. Alice has used almost all of her available storage balance. She attempts to call `post` with a large amount of text, and the transaction aborts because she needs to pay for more storage first.
+Suposición: `social` tiene una función `post` que permite crear un post nuevo con un texto sin formato. Alice ha usado casi todo su balance de almacenamiento. Ella trata de llamar a `post` con una cantidad larga de texto, y se aborta la transacción porque ella necesita pagar por más almacenamiento primero.
 
-Note that applications will probably want to avoid this situation in the first place by prompting users to top up storage deposits sufficiently before available balance runs out.
+Tenga en cuenta que, primeramente, las aplicaciones probablemente querrán evitar esta situación solicitando a los usuarios que recarguen los depósitos de almacenamiento antes de que el balance se acabe.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-1. Alice issues a transaction, let's say `social.post`, and it fails with an intelligible error message to tell her that she has an insufficient storage balance to cover the cost of the operation
-2. Alice issues a transaction to increase her storage balance
-3. Alice retries the initial transaction and it succeeds
+1. Alice emite una transacción, digamos `social.post`, y falla con un error inteligible que dice que tiene un balance de almacenamientoe insuficiente para cubrir el corto de la operación
+2. Alice emite una transacción para incrementar su balance de almacenamiento
+3. Alice vuelve a tratar la transacción inicial y funciona
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. This is outside the scope of this spec, but let's say Alice calls `near call social post '{ "text": "very long message" }'`, and that this fails with a message saying something like "Insufficient storage deposit for transaction. Please call `storage_deposit` and attach at least 0.1 NEAR, then try again."
+1. Esto está fuera del alcance de esta especificación, pero digamos que Alice llama a `near call social post '{ "text": "very long message" }'`, y que esto falla con un mensaje diciendo algo como "Depósito de almacenamiento insuficiente. Por favor llame a `storage_deposit` y agregue al menos 0.1 NEAR e intente otra vez."
 
-2. Alice deposits the proper amount in a transaction by calling `social::storage_deposit` with the attached deposit of '0.1'. Using NEAR CLI:
+2. Alice deposita la cantidad adecuada en una transacción al llamar a `social::storage_deposit` con el depósito agregado de '0.1'. Usando NEAR CLI:
 
        near call social storage_deposit '' \
          --accountId alice --amount 0.1
 
-   The result:
+   El resultado:
 
        {
          total: '200000000000000000000000',
          available: '100100000000000000000000'
        }
 
-3. Alice tries the initial `near call social post` call again. It works.
+3. Alice trata la llamada inicial `near call social post` otra vez. Funciona.
 
-#### 4. Removing storage and reclaiming excess deposit
+#### 4. Remoción de almacenamiento y relamo del depósito excedente
 
-Assumption: Alice has more deposited than she is using.
+Suposición: Alice tiene más depositado de lo que usa.
 
-**High-level explanation**
+**Explicación de alto nivel**
 
-1. Alice views her storage balance and sees that she has extra.
-2. Alice withdraws her excess deposit.
+1. Alice ve su depósito de almacenamiento y ve que tiene un extra.
+2. Alice retira su depósito excedente.
 
-**Technical calls**
+**Llamadas técnicas**
 
-1. Alice queries `social::storage_balance_of({ "account_id": "alice" })`. With NEAR CLI:
+1. Alice consulta `social::storage_balance_of({ "account_id": "alice" })`. Con NEAR CLI:
 
        near view social storage_balance_of '{"account_id": "alice"}'
 
-   Response:
+   Respuesta:
 
        {
          total: '200000000000000000000000',
          available: '100100000000000000000000'
        }
 
-2. Alice calls `storage_withdraw` with a 1 yoctoⓃ deposit. NEAR CLI command:
+2. Alice llama a `storage_withdraw` con un depósito de 1 yoctoⓃ. comando de NEAR CLI:
 
        near call social storage_withdraw \
          '{"amount": "100100000000000000000000"}' \
          --accountId alice --depositYocto 1
 
-   Result:
+   Resultado:
 
        {
          total: '200000000000000000000000',
          available: '0'
        }
 
-## Reference-level explanation
+## Explicación a nivel referencia
 
-**NOTES**:
+**NOTAS**:
 
-- All amounts, balances and allowance are limited by `U128` (max value 2<sup>128</sup> - 1).
-- This storage standard uses JSON for serialization of arguments and results.
-- Amounts in arguments and results are serialized as Base-10 strings, e.g. `"100"`. This is done to avoid JSON limitation of max integer value of 2<sup>53</sup>.
-- To prevent the deployed contract from being modified or deleted, it should not have any access keys on its account.
+- Todas las cantidades, balances y allowance son limitadas por `U128` (valor máximo 2<sup>128</sup> - 1).
+- Este estándar de almacenamiento usa JSON para la serialización de argumentos y resultados.
+- Las cantidades en los argumentso y resultados son serializados con cadenas en Base-10, e.j. `"100"`. Esto se hace para evitar la limitación de entero máximo de JSON de 2<sup>53</sup>.
+- Para prevenir que el contrato desplegado sea modificado o eliminado, no debería tener llaves de acceso en su cuenta.
 
-**Interface**:
+**Interfaz**:
 
 ```ts
-// The structure that will be returned for the methods:
+// La estructura que será regresada por los métodos:
 // * `storage_deposit`
 // * `storage_withdraw`
 // * `storage_balance_of`
-// The `total` and `available` values are string representations of unsigned
-// 128-bit integers showing the balance of a specific account in yoctoⓃ.
+// Los valores `total` y `available` son representaciones de cadena de enteros
+// no firmados de 128-bits mostrando el balance de una cuenta específica en yoctoⓃ.
 type StorageBalance = {
    total: string;
    available: string;
