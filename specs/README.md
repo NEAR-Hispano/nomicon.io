@@ -13,4 +13,4 @@ Para una mejor comprensión, lea los siguientes documentos en orden numérico.
 
 ## Estándares
 
-Los estándares como “Fungible Token Standard” (estándar del token fungible) pueden ser encontrados en la página de [Estándares](Standards/README.md) page.
+Los estándares como “Fungible Token Standard” (estándar del token fungible) pueden ser encontrados en la página de [Estándares](Standards/README.md).
