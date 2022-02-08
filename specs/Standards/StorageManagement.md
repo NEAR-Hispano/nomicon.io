@@ -322,102 +322,103 @@ type StorageBalance = {
    available: string;
 }
 
-// The below structure will be returned for the method `storage_balance_bounds`.
-// Both `min` and `max` are string representations of unsigned 128-bit integers.
+// La estructura siguiente será regresada para el método `storage_balance_bounds`.
+// Los dos `min` y `max` son representaciones de cadenas de enteros no firmados de
+// 128-bits.
 //
-// `min` is the amount of tokens required to start using this contract at all
-// (eg to register with the contract). If a new contract user attaches `min`
-// NEAR to a `storage_deposit` call, subsequent calls to `storage_balance_of`
-// for this user must show their `total` equal to `min` and `available=0` .
+// `min` es la canitdad de tokens requerida para empezar a usar este contrato
+// (ej para registrarse con el contrato). S un contrato adjunta `min`
+// NEAR a una llamada `storage_deposit`, las llamadas subsecuentes a `storage_balance_of`
+// para este usuario deberá mostrar su `total` igual a `min` y `available=0`
 //
-// A contract may implement `max` equal to `min` if it only charges for initial
-// registration, and does not adjust per-user storage over time. A contract
-// which implements `max` must refund deposits that would increase a user's
-// storage balance beyond this amount.
+// Un contrato puede implentar `max` igual a `min` si solo cobra por el registro
+// inicial, y no ajusta el almacenamiento por usuario a lo largo del tiempo. Un 
+// contrato que implementa `max` debe reembolsar los depósitos que puedan incrementar
+// el almacenamiento de un usuario más allá de esta cantidad.
 type StorageBalanceBounds = {
     min: string;
     max: string|null;
 }
 
-/************************************/
-/* CHANGE METHODS on fungible token */
-/************************************/
-// Payable method that receives an attached deposit of Ⓝ for a given account.
+/***************************************/
+/* MÉTODOS DE CAMBIO de token fungible */
+/***************************************/
+// Método de pago que recibe un depósito adjunto de Ⓝ para una cuenta determinada.
 //
-// If `account_id` is omitted, the deposit MUST go toward predecessor account.
-// If provided, deposit MUST go toward this account. If invalid, contract MUST
-// panic.
+// Si se omite `account_id`, el depósito DEBE ir a la cuenta anterior.
+// Si se proporciona, el depósito DEBE ir hacia esta cuenta. Si es inválida,
+// el contrato debe de entrar en pánico.
 //
-// If `registration_only=true`, contract MUST refund above the minimum balance
-// if the account wasn't registered and refund full deposit if already
-// registered.
+// Si `registration_only=true`, el contrato DEBE reembolsar por encima del saldo mínimo
+// si la cuenta no estaba registrada y reembolsará el depósito completo si ya está
+// registrado.
 //
-// The `storage_balance_of.total` + `attached_deposit` in excess of
-// `storage_balance_bounds.max` must be refunded to predecessor account.
+// El `storage_balance_of.total` + `attached_deposit` en exceso de
+// `storage_balance_bounds.max` deberá ser reembolsado a la cuenta anterior.
 //
-// Returns the StorageBalance structure showing updated balances.
+// Regresa la estructura StorageBalance mostrando los balances actualizados.
 function storage_deposit(
     account_id: string|null,
     registration_only: boolean|null
 ): StorageBalance {}
 
-// Withdraw specified amount of available Ⓝ for predecessor account.
+// Retirar una cantidad específica de los Ⓝ disponibles para la cuenta anterior.
 //
-// This method is safe to call. It MUST NOT remove data.
+// Este método es seguro de llamar. NO DEBE remover información.
 //
-// `amount` is sent as a string representing an unsigned 128-bit integer. If
-// omitted, contract MUST refund full `available` balance. If `amount` exceeds
-// predecessor account's available balance, contract MUST panic.
+// `amount` se envía como una representación de una cadena de un entero no firmado de 128-bits.
+// Si se omite, el contrato DEBE reembolsar el balance `available` completo. Si `amount` excede
+// el balance de la cuenta anterior, el contrato DEBE entrar en pánico
 //
-// If predecessor account not registered, contract MUST panic.
+// Si la cuenta anterior no está registrada, el contrato DEBE entrar en pánico.
 //
-// MUST require exactly 1 yoctoNEAR attached balance to prevent restricted
-// function-call access-key call (UX wallet security)
+// DEBE requerir exactamente 1 yoctoNEAR de balance adjunto para prevenir llamadas
+// de función con llaves de acceso restringidas (seguridad de la billetera UX)
 //
-// Returns the StorageBalance structure showing updated balances.
+// Regresa la estructura StorageBalance mostrando los balances actualizados.
 function storage_withdraw(amount: string|null): StorageBalance {}
 
-// Unregisters the predecessor account and returns the storage NEAR deposit.
+// Da de baja la cuenta anterior y regresa el depósito en NEAR de almacenamiento.
 //
-// If the predecessor account is not registered, the function MUST return
-// `false` without panic.
+// Si la cuenta anterior no está registrada, la función DEBE resgresar
+// `false` sin entrar en pánico.
 //
-// If `force=true` the function SHOULD ignore existing account data, such as
-// non-zero balances on an FT contract (that is, it should burn such balances),
-// and close the account. Contract MAY panic if it doesn't support forced
-// unregistration, or if it can't force unregister for the particular situation
-// (example: too much data to delete at once).
+// Si `force=true` la función DEBERÍA ignorar la información de la cuenta existente,
+// tal como balances diferentes de 0 en un contrato TF (es decir, debería quemar dichos balances),
+// y cerrar la cuenta. El contrato PUEDE entrar en pánico si no soporta el dar de baja
+// de manera forzada, o si no puede forzar la dada de baja para la situación particular
+// (ejemplo: demasiada información para eliminar de una).
 //
-// If `force=false` or `force` is omitted, the contract MUST panic if caller
-// has existing account data, such as a positive registered balance (eg token
-// holdings).
+// Si `force=false` o si `force` es omitido, el contrato DEBE de entrar en pánico
+// si el llamanda tiene información de cuenta existente, como un saldo de balance positivo
+// (ej. tenencias de dinero)
 //
-// MUST require exactly 1 yoctoNEAR attached balance to prevent restricted
-// function-call access-key call (UX wallet security)
+// DEBE requerir exactamente 1 yoctoNEAR de balance adjunto para prevenir llamadas
+// de función con llaves de acceso restringidas (seguridad de la billetera UX)
 //
-// Returns `true` iff the account was successfully unregistered.
-// Returns `false` iff account was not registered before.
+// Regresa `true` si la cuenta fue dada de baja exitosamente.
+// Regresa `false` si la cuenta no fue registrada anteriormente.
 function storage_unregister(force: boolean|null): boolean {}
 
 /****************/
-/* VIEW METHODS */
+/* MÉTODOS VIEW */
 /****************/
-// Returns minimum and maximum allowed balance amounts to interact with this
-// contract. See StorageBalanceBounds.
+// Regresa las cantidades de balance mínimo y máximo permitido para interactuar con
+// este contrato. Vea StorageBalanceBounds.
 function storage_balance_bounds(): StorageBalanceBounds {}
 
-// Returns the StorageBalance structure of the valid `account_id`
-// provided. Must panic if `account_id` is invalid.
+// Regresa la estructura StorageBalance del `account_id` válido
+// proporcionado. Debe entrar en pánico si `account_id` es inválido.
 //
-// If `account_id` is not registered, must return `null`.
+// Si `account_id` no está registrado, deberá regresar `null`.
 function storage_balance_of(account_id: string): StorageBalance|null {}
 ```
 
-## Drawbacks
+## Desventajas
 
-- The idea may confuse contract developers at first until they understand how a system with storage staking works.
-- Some folks in the community would rather see the storage deposit only done for the sender. That is, that no one else should be able to add storage for another user. This stance wasn't adopted in this standard, but others may have similar concerns in the future.
+- La idea puede confundir a los desarrolladores de contratos al principio hasta que entienda como un sistema con stakeo de storage funciona.
+- Algunas personas en la comunidad preferirían que el depósito de almacenamiento solo se realice para el remitente. Es decir, nadie debería poder agregar almacenamiento para otro usuario. Esta postura no fue adoptada en este estándar, pero otros podrían tener alguna preocupación similar en el futuro.
 
-## Future possibilities
+## Posibilidades futuras
 
-- Ideally, contracts will update available balance for all accounts every time the NEAR blockchain's configured storage-cost-per-byte is reduced. That they *must* do so is not enforced by this current standard.
+- Idealmente, los contratos actualizarán el balance disponible para todas las cuentas cada vez que el costo-almacenamiento-por-byte de la blockchain de NEAR se reduzca. Que se *deba* hacer no está plasmado en el estándar actual.
