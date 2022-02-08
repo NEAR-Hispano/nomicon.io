@@ -1,1 +1,1 @@
-# Chain Specification
+# Especificación de cadena
