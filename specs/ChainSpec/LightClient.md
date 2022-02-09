@@ -180,14 +180,14 @@ pub enum TransactionOrReceiptId {
 y el hash del bloque de la cabeza del cliente ligero. El rpc regresará la siguiente estructura
 ```rust
 pub struct RpcLightClientExecutionProofResponse {
-    /// Proof of execution outcome
+    /// Prueba de la salida de la ejecución
     pub outcome_proof: ExecutionOutcomeWithIdView,
-    /// Proof of shard execution outcome root
+    /// Prueba de la raíz de la salida de la ejecución del fragmento
     pub outcome_root_proof: MerklePath,
-    /// A light weight representation of block that contains the outcome root
+    /// Una representación ligera de un bloque que contiene la raíz de la salida
     pub block_header_lite: LightClientBlockLiteView,
-    /// Proof of the existence of the block in the block merkle tree,
-    /// which consists of blocks up to the light client head
+    /// Prueba de la existencia del bloque en el árblo de bloques merkle,
+    /// que consiste de bloques hasta que se llega a la cabeza
     pub block_proof: MerklePath,
 }
 ```
@@ -195,13 +195,13 @@ que incluye todo lo que un cliente ligero necesita para probar la salida de la e
 Aquí `ExecutionOutcomeWithIdView` es
 ```rust
 pub struct ExecutionOutcomeWithIdView {
-    /// Proof of the execution outcome
+    /// Prueba de la salida de la ejecución
     pub proof: MerklePath,
     /// Block hash of the block that contains the outcome root
     pub block_hash: CryptoHash,
-    /// Id of the execution (transaction or receipt)
+    /// Id de la ejecución (transacción o recibo)
     pub id: CryptoHash,
-    /// The actual outcome
+    /// La salida actual
     pub outcome: ExecutionOutcomeView,
 }
 ```
