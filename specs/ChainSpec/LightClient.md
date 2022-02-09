@@ -197,7 +197,7 @@ Aquí `ExecutionOutcomeWithIdView` es
 pub struct ExecutionOutcomeWithIdView {
     /// Prueba de la salida de la ejecución
     pub proof: MerklePath,
-    /// Block hash of the block that contains the outcome root
+    /// Hash de bloque del bloque que contiene la raíz de la salida
     pub block_hash: CryptoHash,
     /// Id de la ejecución (transacción o recibo)
     pub id: CryptoHash,
