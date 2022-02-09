@@ -1,19 +1,19 @@
-# Light Client
+# Cliente ligero
 
-The state of the light client is defined by:
+El estado del cliente ligero está definido por:
 
-1. `BlockHeaderInnerLiteView` for the current head (which contains `height`, `epoch_id`, `next_epoch_id`, `prev_state_root`, `outcome_root`, `timestamp`, the hash of the block producers set for the next epoch `next_bp_hash`, and the merkle root of all the block hashes `block_merkle_root`);
-2. The set of block producers for the current and next epochs.
+1. `BlockHeaderInnerLiteView` para la cabeza actual (que contiene `height`, `epoch_id`, `next_epoch_id`, `prev_state_root`, `outcome_root`, `timestamp`, el hash de los productores de bloque establecido por el siguiente epoch `next_bp_hash`, y la raíz merkle para todos los hashes de bloque `block_merkle_root`);
+2. El conjunto de productores de bloques para los actuales y siguientes epochs.
 
-The `epoch_id` refers to the epoch to which the block that is the current known head belongs, and `next_epoch_id` is the epoch that will follow.
+El `epoch_id` se refiere al epoch al que pertenece el bloque que es la cabeza conocida actual, y `next_epoch_id` es el epoch que seguirá después.
 
-Light clients operate by periodically fetching instances of `LightClientBlockView` via particular RPC end-point described [below](#rpc-end-point).
+Los clientes ligeros operan trayendo periódicamente instancias de `LightClientBlockView` a través de un end-point RPC descrito a [continución](#rpc-end-point).
 
-Light client doesn't need to receive `LightClientBlockView` for all the blocks. Having the `LightClientBlockView` for block `B` is sufficient to be able to verify any statement about state or outcomes in any block in the ancestry of `B` (including `B` itself). In particular, having the `LightClientBlockView` for the head is sufficient to locally verify any statement about state or outcomes in any block on the canonical chain.
+El cliente ligero no necesita recibir `LightClientBlockView` para todos los bloques. Tener el `LightClientBlockView` para el bloque `B` es suficiente para poder verificar cualquier declaración acerca del estado o las salidas en cualquier bloque en la ascendencia de `B` (incluyendo al mismo `B`). Particularmente, tener `LightClientBlockView` en la cabeza es suficiente para verificar localmente cualquier declaración acerca del estado o las salidas en cualquier bloque en la cadena canónica.
 
-However, to verify the validity of a particular `LightClientBlockView`, the light client must have verified a `LightClientBlockView` for at least one block in the preceding epoch, thus to sync to the head the light client will have to fetch and verify a `LightClientBlockView` per epoch passed.
+Sin embargo, para verificar la validez de un `LightClientBlockView` particular, el cliente ligero de de haber verificado un `LightClientBlockView` para al menos un bloque en el epoch anterior, por lo tanto para sincronizar para la cabeza el cliente ligero tendrá que traer y verificar un `LightClientBlockView` por cada epoch pasado.
 
-## Validating Light Client Block Views
+## Validación de vistas de bloque de clientes ligeros
 
 ```rust
 pub enum ApprovalInner {
@@ -55,7 +55,7 @@ pub struct LightClientBlockView {
 }
 ```
 
-Recall that the hash of the block is
+Recuerda que el hash del bloque es
 
 ```rust
 sha256(concat(
@@ -67,7 +67,7 @@ sha256(concat(
 ))
 ```
 
-The fields `prev_block_hash`, `next_block_inner_hash` and `inner_rest_hash` are used to reconstruct the hashes of the current and next block, and the approvals that will be signed, in the following way (where `block_view` is an instance of `LightClientBlockView`):
+Los campos `prev_block_hash`, `next_block_inner_hash` y `inner_rest_hash` son usados para reconstruir los hashes del actual bloque y el siguiente, y las aprobaciones que serán firmadas de la manera siguiente (donde `block_view` es una instancia de `LightClientBlockView`):
 
 ```python
 def reconstruct_light_client_block_view_fields(block_view):
@@ -92,14 +92,14 @@ def reconstruct_light_client_block_view_fields(block_view):
     return (current_block_hash, next_block_hash, approval_message)
 ```
 
-The light client updates its head with the information from `LightClientBlockView` iff:
+El cliente liger actualiza su cabeza con la información de `LightClientBlockView` si:
 
-1. The height of the block is higher than the height of the current head;
-2. The epoch of the block is equal to the `epoch_id` or `next_epoch_id` known for the current head;
-3. If the epoch of the block is equal to the `next_epoch_id` of the head, then `next_bps` is not `None`;
-4. `approvals_after_next` contain valid signatures on `approval_message` from the block producers of the corresponding epoch (see next section);
-5. The signatures present in `approvals_after_next` correspond to more than 2/3 of the total stake (see next section).
-6. If `next_bps` is not none, `sha256(borsh(next_bps))` corresponds to the `next_bp_hash` in `inner_lite`.
+1. La altura del bloque es mayor que la altura de la cabeza actual;
+2. El epoch del bloque es igual al `epoch_id` o `next_epoch_id` conocido para la cabeza actual;
+3. Si el epoch del bloque es igual al `next_epoch_id` de la cabeza, entonces `next_bps` no es `None`;
+4. `approvals_after_next` contiene firmas válidas en `approval_message` de los productores de bloques del epoch correspondiente (vea la siguiente sección):
+5. Las firmas presentes en `approvals_after_next` corresponden a más de 2/3 del stake total (vea la siguiente sección).
+6. Si `next_bps` no es none, `sha256(borsh(next_bps))` corresponde al `next_bp_hash` en `inner_lite`.
 
 ```python
 def validate_and_update_head(block_view):
@@ -153,31 +153,31 @@ def validate_and_update_head(block_view):
     head = block_view
 ```
 
-## Signature verification
+## Verificación de firma
 
-To simplify the protocol we require that the next block and the block after next are both in the same epoch as the block that `LightClientBlockView` corresponds to. It is guaranteed that each epoch has at least one final block for which the next two blocks that build on top of it are in the same epoch.
+Para simplicar el protocolo requerimos que el bloque siguiente y el bloque después del siguiente están en el mismo epoch que el blque al que `LightClientBlockView` corresponde. Está garantizado que cada epoch tiene al menos un bloque final para el cual los siguientes dos bloques que se construyen encima de el están en el mismo epoch.
 
-By construction by the time the `LightClientBlockView` is being validated, the block producers set for its epoch is known. Specifically, when the first light client block view of the previous epoch was processed, due to (3) above the `next_bps` was not `None`, and due to (6) above it was corresponding to the `next_bp_hash` in the block header.
+Por construcción en el momento en que se valida `LightClientBlockView`, se conoce el conjunto de productores de bloques para su epoch. Específicamente, cuando la primer vista de cliente ligero del epoch anterior fue procesada, debido a (3) el `next_bps` no era `None`, y debido que a (6) correspondía al `next_bp_hash` en el header del bloque.
 
-The sum of all the stakes of `next_bps` in the previous epoch is `total_stake` referred to in (5) above.
+La suma de todos los stakes de `next_bps` en el epoch anterior es `total_stake` mencionado en (5) anteriormente.
 
-The signatures in the `LightClientBlockView::approvals_after_next` are signatures on `approval_message`. The  `i`-th signature in `approvals_after_next`, if present, must validate against the `i`-th public key in `next_bps` from the previous epoch. `approvals_after_next` can contain fewer elements than `next_bps` in the previous epoch.
+Las firmas en el `LightClientBlockView::approvals_after_next` son firmas en `approval_message`. La firma `i`-ésima en `approvals_after_next`, si está presente, debe validar contra la `i`-ésima llave pública en `next_bps` del epoch anterior. `approvals_after_next` puede contener menos elementos que `next_bps` en el epoch anterior.
 
-`approvals_after_next` can also contain more signatures than the length of `next_bps` in the previous epoch. This is due to the fact that, as per [consensus specification](./Consensus.md), the last blocks in each epoch contain signatures from both the block producers of the current epoch, and the next epoch. The trailing signatures can be safely ignored by the light client implementation.
+`approvals_after_next` también puede contener más firmas que la longitud de `next_bps` en el epoch anterior. Esto es debido al hecho de que, por [consenso](./Consensus.md), los últimos bloques en cada epoch contienen firmas de los productores de bloques del epoch actual y del epoch siguiente. Las girmas finales pueden ser seguramente ignoradas por la implementación del cliente ligero.
 
-## Proof Verification
+## Verificación de prueba
 
-[Transaction Outcome Proof]: #transaction-outcome-proofs
-### Transaction Outcome Proofs
+[Prueba del resultado de la transacción]: #transaction-outcome-proofs
+### Pruebas de resultados de transacciones
 
-To verify that a transaction or receipt happens on chain, a light client can request a proof through rpc by providing `id`, which is of type
+Para verificar que una transacción o recibo pasa en la cadena, un cliente ligero puede pedir una prueba a través de rpc proporcionando un `id`, que es de tipo
 ```rust
 pub enum TransactionOrReceiptId {
     Transaction { hash: CryptoHash, sender: AccountId },
     Receipt { id: CryptoHash, receiver: AccountId },
 }
 ```
-and the block hash of light client head. The rpc will return the following struct
+y el hash del bloque de la cabeza del cliente ligero. El rpc regresará la siguiente estructura
 ```rust
 pub struct RpcLightClientExecutionProofResponse {
     /// Proof of execution outcome
@@ -191,8 +191,8 @@ pub struct RpcLightClientExecutionProofResponse {
     pub block_proof: MerklePath,
 }
 ```
-which includes everything that a light client needs to prove the execution outcome of the given transaction or receipt.
-Here `ExecutionOutcomeWithIdView` is
+que incluye todo lo que un cliente ligero necesita para probar la salida de la ejecución de la transacción o recibo dado.
+Aquí `ExecutionOutcomeWithIdView` es
 ```rust
 pub struct ExecutionOutcomeWithIdView {
     /// Proof of the execution outcome
@@ -206,23 +206,23 @@ pub struct ExecutionOutcomeWithIdView {
 }
 ```
 
-The proof verification can be broken down into two steps, execution outcome root verification and block merkle root
-verification.
+La prueba de verificación puede ser partida en dos pasos, verificación de la raíz de la salida de ejecución y verificación de la raíz
+de bloque merkle.
 
-#### Execution Outcome Root Verification
-If the outcome root of the transaction or receipt is included in block `H`, then `outcome_proof` includes the block hash
-of `H`, as well as the merkle proof of the execution outcome in its given shard. The outcome root in `H` can be
-reconstructed by
+#### Verificación de la raíz de la salida de ejecución
+Si la raíz de la salida de la transacción o recibo está incluída en el bloque `H`, entonces `outcome_proof` incluye en hash del bloque
+`H`, así como la prueba merkle de la salida de la ejecución en su fragmento dado. La salida de la raíz en `H` puede ser
+reconstruída por
 ```python
 shard_outcome_root = compute_root(sha256(borsh(execution_outcome)), outcome_proof.proof)
 block_outcome_root = compute_root(sha256(borsh(shard_outcome_root)), outcome_root_proof)
 ```
 
-This outcome root must match the outcome root in `block_header_lite.inner_lite`.
+Esta raíz de salida debe empatar con la raíz de salida en `block_header_lite.inner_lite`.
 
-#### Block Merkle Root Verification
+#### Verificación de la raíz de bloque merkle.
 
-Recall that block hash can be computed from `LightClientBlockLiteView` by
+Recuerda que el hash del bloque puede ser calculado desde `LightClientBlockLiteView` por
 ```rust
 sha256(concat(
     sha256(concat(
@@ -233,40 +233,40 @@ sha256(concat(
 ))
 ```
 
-The expected block merkle root can be computed by
+La raíz del bloque merkle esperada puede ser caluculada por
 ```python
 block_hash = compute_block_hash(block_header_lite)
 block_merkle_root = compute_root(block_hash, block_proof)
 ```
-which must match the block merkle root in the light client block of the light client head.
+que debe empatar con la raíz del bloque merkle en el bloque del cliente ligero de la cabeza del mismo cliente ligero.
 
-## RPC end-points
+## End-points RPC
 
-### Light Client Block
+### Bloque de cliente ligero
 
-There's a single end-point that full nodes exposed that light clients can use to fetch new `LightClientBlockView`s:
+Hay un punto final único que exponen los nodos completos que los clientes ligeros pueden usar para obtener nuevos `LightClientBlockView`s:
 
 ```
 http post http://127.0.0.1:3030/ jsonrpc=2.0 method=next_light_client_block params:="[<last known hash>]" id="dontcare"
 ```
 
-The RPC returns the `LightClientBlock` for the block as far into the future from the last known hash as possible for the light client to still accept it. Specifically, it either returns the last final block of the next epoch, or the last final known block. If there's no newer final block than the one the light client knows about, the RPC returns an empty result.
+El RPC devuelve el `LightClientBlock` para el bloque lo más lejos posible en el futuro del último hash conocido para que el cliente ligero aún lo acepte. Específicamente, regresa el último bloque final del epoch siguiente, o el último bloque final conocido. Si no hay bloques finales más nuevos que el que el cliente ligero conoce, el RPC regresa un resultado vacío.
 
-A standalone light client would bootstrap by requesting next blocks until it receives an empty result, and then periodically request the next light client block.
+Un cliente ligero independiente arrancaría solicitando bloques siguientes hasta que reciba un resultado vacío, y después periódicamente solicitar el siguiente bloque de cliente ligero.
 
-A smart contract-based light client that enables a bridge to NEAR on a different blockchain naturally cannot request blocks itself. Instead external oracles query the next light client block from one of the full nodes, and submit it to the light client smart contract. The smart contract-based light client performs the same checks described above, so the oracle doesn't need to be trusted.
+Un cliente ligero basado en contratos inteligentes que permite un puente con NEAR en una blockchain diferente no puede solicitar bloques por sí mismo. En lugar de eso oracles externos consultan el bloque de cliente ligero siguiente de uno de los nodos completos, y lo envían al contrato inteligente del cliente ligero. El cliente ligero basado en contratos inteligentes realiza las mismas verificaciones mencionadas anteriornmente, por lo que no es necesario confiar en el oracle.
 
-### Light Client Proof
+### Prueba de cliente ligero
 
-The following rpc end-point returns `RpcLightClientExecutionProofResponse` that a light client needs for verifying execution outcomes.
+El siguiente end-point rpc regresa `RpcLightClientExecutionProofResponse` que un cliente ligero necesita para verificar las salidas de ejecución.
 
-For transaction execution outcome, the rpc is
+Para la salida de ejecución de una transacción, el rpc es
 
 ```
 http post http://127.0.0.1:3030/ jsonrpc=2.0 method=EXPERIMENTAL_light_client_proof params:="{"type": "transaction", "transaction_hash": <transaction_hash>, "sender_id": <sender_id>, "light_client_head": <light_client_head>}" id="dontcare"
 ```
 
-For receipt execution outcome, the rpc is
+Para la salida de ejecución de un recibo, el rpc es
 
 ```
 http post http://127.0.0.1:3030/ jsonrpc=2.0 method=EXPERIMENTAL_light_client_proof params:="{"type": "receipt", "receipt_id": <receipt_id>, "receiver_id": <receiver_id>, "light_client_head": <light_client_head>}" id="dontcare"
