@@ -1,4 +1,4 @@
-# Epochs and staking
+# Epochs y staking
 - [Epoch](Epoch.md)
 - [EpochManager](EpochManager.md)
 - [Staking](Staking.md)
