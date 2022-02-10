@@ -1,63 +1,63 @@
-# Transactions in the Blockchain Layer
+# Transacciones en la capa de Blockchain
 
-A client creates a transaction, computes the transaction hash and signs this hash to get a signed transaction.
-Now this signed transaction can be sent to a node.
+Un cliente crea una transacción, calcula el hash de la transacción y firma este hash para obtener una transacción firmada.
+Ahora esta transacción firmada puede sern enviada a un nodo.
 
-When a node receives a new signed transaction, it validates the transaction (if the node tracks the shard) and gossips it to the peers. Eventually, the valid transaction is added to a transaction pool.
+Cuando un nodo recibe una transacción firmada nueva, valida la transacción (si el nodo monitorea el fragmento) e informa a los peers. Eventualmente, la transacción válida es agregada al pool de transacciones.
 
-Every validating node has its own transaction pool. The transaction pool maintains transactions that were not yet discarded and not yet included into the chain.
+Cada nodo validador tiene su pool de transacciones. La pool de transacciones mantiene transacciones que no son aún descartadas y aún no incluídas en la cadena.
 
-Before producing a chunk transactions are ordered and validated again. This is done to produce chunks with only valid transactions.
+Antes de producir un fragmento, las transacciones son ordenadas y validadas otra vez. Esto se hace para producir fragmentos con solo una transacción válida.
 
-## Transaction ordering
+## Ordenamiento de transacciones
 
-The transaction pool groups transactions by a pair of `(signer_id, signer_public_key)`.
-The `signer_id` is the account ID of the user who signed the transaction, the `signer_public_key` is the public key of the account's access key that was used to sign the transactions.
-Transactions within a group are not ordered.
+El pool de transacciones agrupa por un par de `(signer_id, signer_public_key)`.
+El `signer_id` es el ID de la cuenta del usuario que firmó la transacción, el `signer_public_key` es la llave pública de la llave de acceso de la cuenta que fue usada para firmar las transacciones.
+Las transacciones dentro de un grupo no están ordenadas.
 
-The valid order of the transactions in a chunk is the following:
+El orden válido de la transacción en un fragmento es el siguiente:
 
-- transactions are ordered in batches.
-- within a batch all transactions keys should have different.
-- a set of transaction keys in each subsequent batch should be a sub-set of keys from the previous batch.
-- transactions with the same key should be ordered in strictly increasing order of their corresponding nonces.
+- las transacciones están ordenadas en lotes.
+- dentro de un lote todas las llaves de las transacciones deben ser diferentes.
+- un conjunto de llaves de transacción en cada lote subsecuente debe ser un subconjunto de llaves del lote anterior.
+- las transacciones con la misma llave deben ser ordenadas en orden estrictamente creciente de sus nonces correspondientes.
 
-Note:
+Nota:
 
-- the order within a batch is undefined. Each node should use a unique secret seed for that ordering to users from finding the lowest keys to get advantage of every node.
+- el orden dentro de un conjunto es indefinido. Cada nodo debe usar una semilla secreta única para ordenar a los usuarios que encuentren las claves más bajas para aprovechar cada nodo.
 
-Transaction pool provides a draining structure that allows to pull transactions in a proper order.
+El pool de transacciones proporciona una estructura de drenaje que permite jalar transacciones en el orden apropiado.
 
-## Transaction validation
+## Validación de transacción
 
-The transaction validation happens twice, once before adding to the transaction pool, next before adding to a chunk.
+La validación de la transacción pasa dos veces, una vez antes de agregar a la pool de transacciones, la siguiente antes de agregar al fragmento.
 
-### Before adding to a transaction pool
+### Antes de agregar a la pool de transacciones
 
-This is done to quickly filter out transactions that have an invalid signature or are invalid on the latest state.
+Esto se hace para filtrar rápidamente transacciones que tienen una firma inválida o son inválidas en el estado más reciente.
 
-### Before adding to a chunk
+### Antes de agregar a un fragmento
 
-A chunk producer has to create a chunk with valid and ordered transactions up to some limits.
-One limit is the maximum number of transactions, another is the total gas burnt for transactions.
+Un productor de fragmentos tiene que crear un fragmento con transacciones válidas y ordenados hasta ciertos límites.
+Un límite es el número máximo de transacciones, otro es el total de gas quemado para las transacciones.
 
-To order and filter transactions, chunk producer gets a pool iterator and passes it to the runtime adapter.
-The runtime adapter pulls transactions one by one.
-The valid transactions are added to the result, invalid transactions are discarded.
-Once the limit is reached, all the remaining transactions from the iterator are returned back to the pool.
+Para ordenar y filtrar transacciones, el productor de fragmentso obtiene un interador de pool y lo pasa al adaptador del tiempo de ejecución.
+El adaptador del tiempo de ejecución jala transacciones una por una.
+Las transacciones válidas son añadidas al resultado, las transacciones inválidas son descartadas.
+Una vez que se llega al límite, todas las transacciones restantes del iterador son regresadas a la pool de transacciones.
 
-## Pool iterator
+## Iterador de la pool
 
-Pool Iterator is a trait that iterates over transaction groups until all transaction group are empty.
-Pool Iterator returns a mutable reference to a transaction group that implements a draining iterator.
-The draining iterator is like a normal iterator, but it removes the returned entity from the group.
-It pulls transactions from the group in order from the smallest nonce to largest.
+El iterador de la pool es una característica que itera sobre los grupos de transacciones hasta que todos los grupos de transacciones quedan vacíos.
+El iterador de la pool regresa una referencia mutable a un grupo de transacciones que implementa un iterador de drenaje.
+El iterador de drenaje es como un iterador normal, pero remueve la entidad regresada del grupo.
+Extrae transacciones del grupo en orden desde el nonce más pequeño hasta el más grande.
 
-The pool iterator and draining iterators for transaction groups allow the runtime adapter to create proper order.
-For every transaction group, the runtime adapter keeps pulling transactions until the valid transaction is found.
-If the transaction group becomes empty, then it's skipped.
+El iterador de la pool y los iteradores de drenaje para grupos de transacciones permiten al adaptador del tiempo de ejecución crear un orden apropiado.
+Para cada grupo de transacción, el adaptador del tiempo de ejecución se queda extrayendo transacciones hasta que se encuentra la transacción válida.
+Si el grupo de transaccion se queda vacío, entonces se salta.
 
-The runtime adapter may implement the following code to pull all valid transactions:
+El adaptador del tiempo de ejecución implementa el código siguiente para extraer todas las transacciones válidas:
 
 ```rust
 let mut valid_transactions = vec![];
@@ -73,15 +73,15 @@ while let Some(group_iter) = pool_iter.next() {
 valid_transactions
 ```
 
-### Transaction ordering example using pool iterator.
+### Ejemplo de ordenamiento de transacción usando el iterador de pool.
 
-Let's say:
+Digamos que:
 
-- account IDs as uppercase letters (`"A"`, `"B"`, `"C"` ...)
-- public keys are lowercase letters (`"a"`, `"b"`, `"c"` ...)
-- nonces are numbers (`1`, `2`, `3` ...)
+- los IDs de cuenta son letras mayúsculas (`"A"`, `"B"`, `"C"` ...)
+- las llaves públicas son letras minúsculas (`"a"`, `"b"`, `"c"` ...)
+- los nonces son números (`1`, `2`, `3` ...)
 
-A pool might have group of transactions in the hashmap:
+Una pool podría tener un grupo de transacciones en el hashmap:
 
 ```
 transactions: {
@@ -92,16 +92,16 @@ transactions: {
 }
 ```
 
-There are 3 accounts (`"A"`, `"B"`, `"C"`). Account `"A"` used 2 public keys (`"a"`, `"c"`). Other accounts used 1 public key each.
-Transactions within each group may have repeated nonces while in the pool.
-That's because the pool doesn't filter transactions with the same nonce, only transactions with the same hash.
+Hay 3 cuentas (`"A"`, `"B"`, `"C"`). La cuenta `"A"` usó 2 llaves públicas (`"a"`, `"c"`). Otras cuentas usaron 1 llave pública cada una.
+Las transacciones dentro de cada grupo pueden tener nonces repetidos mientras están en la pool.
+Eso se debe a que la pool no filtra transacciones con el mismo nonce, solo transacciones con el mismo hash.
 
-For this example, let's say that transactions are valid if the nonce is even and strictly greater than the previous nonce for the same key.
+Para este ejemplo, digamos que las transacciones son válidas si el nonce es par y estrictamente mayor que el nonce anterior para la misma llave.
 
-##### Initialization
+##### Inicialización
 
-When `.pool_iterator()` is called, a new `PoolIteratorWrapper` is created and it holds the mutable reference to the pool,
-so the pool can't be modified outside of this iterator. The wrapper looks like this:
+Cuando se llama a `.pool_iterator()`, un `PoolIteratorWrapper` nuevo se crea y retiene la referencia mutable a la pool,
+para que así la pool no pueda ser modificada fuera de este iterador. El envoltorio se así:
 
 ```
 pool: {
@@ -115,16 +115,16 @@ pool: {
 sorted_groups: [],
 ```
 
-`sorted_groups` is a queue of sorted transaction groups that were already sorted and pulled from the pool.
+`sorted_groups` es una fila de grupos transacciones ordenadas que ya fueron ordenadas y extraídas de la pool.
 
-##### Transaction #1
+##### Transacción #1
 
-The first group to be selected is for key `("A", "a")`, the pool iterator sorts transactions by nonces and returns the mutable references to the group. Sorted nonces are:
-`[1, 1, 2, 2, 3]`. Runtime adapter pulls `1`, then `1`, and then `2`. Both transactions with nonce `1` are invalid because of odd nonce.
+El primer grupo a ser seleccionado es para la llave `("A", "a")`, el iterador de la pool ordena las transacciones por sus nonces y regresa la referencia mutable para el grupo. Los nonces ordenados son:
+`[1, 1, 2, 2, 3]`. El tiempo de ejecución extrae `1`, después a `1`, y después a `2`. Las transacciones con el nonce `1` son inválidas por el nonce impar.
 
-Transaction with nonce `2` is added to the list of valid transactions.
+La transacción con el nonce `2` se agrega a la lista de las transacciones válidas.
 
-The transaction group is dropped and the pool iterator wrapper becomes the following:
+El grupo de la transacción se descarta y el envoltorio del iterador de la pool se convierte en el siguiente:
 
 ```
 pool: {
@@ -139,14 +139,13 @@ sorted_groups: [
 ],
 ```
 
-##### Transaction #2
+##### Transacción #2
 
-The next group is for key `("B", "b")`, the pool iterator sorts transactions by nonces and returns the mutable references to the group. Sorted nonces are:
-`[13, 14]`. Runtime adapter pulls `13`, then `14`. The transaction with nonce `13` is invalid because of odd nonce.
+El siguiente grupo es para la llave `("B", "b")`, el iterador de la pool ordena las transacciones por sus nonces y regresa la referencia mutable para el grupo. Los nonces ordenados son: `[13, 14]`. El adaptador del tiempo de ejecución extrae `13`, después `14`. La transacción con el nonce `13` es inválida por el nonce impar.
 
-Transaction with nonce `14` is added to the list of valid transactions.
+La transacción con el nonce `14` se agrega a la lista de transacciones váldas.
 
-The transaction group is dropped, but it's empty, so the pool iterator drops it completely:
+El grupo de la transacción se descarta, pero está vacío, por lo que el iterador de la pool lo descarta por completo:
 
 ```
 pool: {
@@ -160,14 +159,13 @@ sorted_groups: [
 ],
 ```
 
-##### Transaction #3
+##### Transacción #3
 
-The next group is for key `("C", "d")`, the pool iterator sorts transactions by nonces and returns the mutable references to the group. Sorted nonces are:
-`[7]`. Runtime adapter pulls `7`. The transaction with nonce `7` is invalid because of odd nonce.
+El siguiente grupo es para la llave `("C", "d")`, el iterador de la pool ordena las transacciones por sus nonces y regresa la referencia mutable para el grupo. Los nonces ordenados son: `[7]`. El adaptador del tiempo de ejecución extrae `7`. La transacción con el nonce `7` es inválida por el nonce impar.
 
-No valid transactions is added for this group.
+Ninguna transacción válida se agrega para este grupo.
 
-The transaction group is dropped, it's empty, so the pool iterator drops it completely:
+El grupo de la transacción se descarta, está vacío, por lo que el iterado de la pool lo descarta por completo:
 
 ```
 pool: {
@@ -180,12 +178,11 @@ sorted_groups: [
 ],
 ```
 
-The next group is for key `("A", "c")`, the pool iterator sorts transactions by nonces and returns the mutable references to the group. Sorted nonces are:
-`[2, 3, 5]`. Runtime adapter pulls `2`.
+El siguiente grupo es para la llave `("A", "c")`, el iterador de la pool ordena las transacciones por sus nonces y regresa la referencia mutable para el grupo. Los nonces ordenados son: `[2, 3, 5]`. El adaptador del tiempo de ejecución extrae `2`.
 
-It's a valid transaction, so it's added to the list of valid transactions.
+Es una transacción válida, así que se agrega a la lista de transacciones válidas.
 
-The transaction group is dropped, so the pool iterator drops it completely:
+El grupo de la transacción se descarta, para que así el iterador de la pool lo descarte por completo:
 
 ```
 pool: {
@@ -197,20 +194,20 @@ sorted_groups: [
 ],
 ```
 
-##### Transaction #4
+##### Transacción #4
 
-The next group is pulled not from the pool, but from the sorted_groups. The key is `("A", "a")`.
-It's already sorted, so the iterator returns the mutable reference. Nonces are:
-`[2, 3]`. Runtime adapter pulls `2`, then pulls `3`.
+El siguiente grupo no se extrae de la pool, sino de sorted_groups. La llave es `("A", "a")`.
+Ya está ordenado, por lo que el iterador regresa la referencia mutable. Los nonces son:
+`[2, 3]`. El adaptador del tiempo de ejecución extrae `2`, después extrae `3`.
 
-The transaction with nonce `2` is invalid, because we've already pulled a transaction #1 from this group and it had nonce `2`.
-The new nonce has to be larger than the previous nonce, so this transaction is invalid.
+La transacción con nonce `2` es inválida, porque ya extraímos la transacción #1 de este grupo y tenía en nonce `2`.
+El nonce nuevo tiene que ser más largo que el nonce anterior, así que está transacción queda invalidada.
 
-The transaction with nonce `3` is invalid because of odd nonce.
+La transacción con el nonce `3` es inválida porque el odd es impar.
 
-No valid transactions is added for this group.
+Ninguna transacción válida es agregada para este grupo.
 
-The transaction group is dropped, it's empty, so the pool iterator drops it completely:
+El grupo de la transacción se descarta, está vacío, por lo tanto el iterador de la pool lo descarta completamente:
 
 ```
 pool: {
@@ -221,12 +218,12 @@ sorted_groups: [
 ],
 ```
 
-The next group is for key `("A", "c")`, with nonces `[3, 5]`.
-Runtime adapter pulls `3`, then pulls `5`. Both transactions are invalid, because the nonce is odd.
+El siguiente grupo es para la llave `("A", "c")`, con los nonces `[3, 5]`.
+El adaptador del teimpo de ejecución extrae `3`, después extrae `5`. Las dos transacciones son inválidas porque el nonce es impar.
 
-No transactions are added.
+Ninguna transacción fue agregada.
 
-The transaction group is dropped, the pool iterator wrapper becomes empty:
+El grupo de la transacción se descarte, el envoltorio del iterador de la pool se queda vacío:
 
 ```
 pool: {
@@ -235,15 +232,15 @@ pool: {
 sorted_groups: [ ],
 ```
 
-When runtime adapter tries to pull the next group, the pool iterator returns `None`, so the runtime adapter drops the iterator.
+Cuando el adaptador del tiempo de ejecución trata de extraer el grupo siguiente, el iterador de la pool regresa `None`, por lo que el adaptador del tiempo de ejecución descarta el iterador.
 
-##### Dropping iterator
+##### Descartando el iterador
 
-If the iterator was not fully drained, but some transactions still remained. They would be reinserted back into the pool.
+Si el iterador no se vació por completo, pero aún quedan algunas transacciones. Se reinsertan de regreso a la pool.
 
-##### Chunk Transactions
+##### Transacciones por fragmentos
 
-Transactions that were pulled from the pool:
+Las transacciones que fueron extraídas de la pool:
 
 ```
 // First batch
@@ -262,7 +259,7 @@ Transactions that were pulled from the pool:
 ("A", "c", 5),
 ```
 
-The valid transactions are:
+Las transacciones válidas son:
 
 ```
 ("A", "a", 2),
@@ -270,23 +267,23 @@ The valid transactions are:
 ("A", "c", 2),
 ```
 
-In total there were only 3 valid transactions, that resulted in one batch.
+En total solo hubieron 3 transacciones válidas, que resultaron en un lote.
 
-### Order validation
+### Validación de orden
 
-Other validators need to check the order of transactions in the produced chunk.
-It can be done in linear time, using a greedy algorithm.
+Otros validadores necesitan revisar el orden de las transacciones en el fragemto producido.
+Puede hacerse en tiempo lineal, usando un algoritmo voraz.
 
-To select a first batch we need to iterate over transactions one by one until we see a transaction
-with the key that we've already included in the first batch.
-This transaction belongs to the next batch.
+Para seleccionar un primer lote necesitamos iterar sobre las transacciones una por una hasta que veamos una transacción
+con la llave que ya incluímos en el primer lote.
+Esta transacción pertenece al siguiente lote.
 
-Now all transactions in the N+1 batch should have a corresponding transaction with the same key in the N batch.
-If there are no transaction with the same key in the N batch, then the order is invalid.
+Ahora todas las transacciones en el lote N+1 deben tener una transacción correspondiente con la misma llave en el lote N.
+Si no hay tranascciones con la misma llave en el lote N, entonces la orden es inválida.
 
-We also enforce the order of the sequence of transactions for the same key, the nonces of them should be in strictly increasing order.
+También hacemos cumplir el orden de la secuencia de transacciones para la misma llave, sus nonces deben estar en orden estrictamente creciente.
 
-Here is the algorithm that validates the order:
+Aquí está el algoritmo que valida el orden:
 
 ```rust
 fn validate_order(txs: &Vec<Transaction>) -> bool {
@@ -297,22 +294,22 @@ fn validate_order(txs: &Vec<Transaction>) -> bool {
     for tx in txs {
         let key = tx.key();
 
-        // Verifying nonce
+        // Verificando el nonce
         let nonce = tx.nonce();
         if let Some(last_nonce) = nonces.get(key) {
             if nonce <= last_nonce {
-                // Nonces should increase.
+                // Nonce debe incrementar
                 return false;
             }
         }
         nonces.insert(key, nonce);
 
-        // Verifying batch
+        // Verificando el lote
         if let Some(last_batch) = batches.get(key) {
             if last_batch == current_batch {
                 current_batch += 1;
             } else if last_batch < current_batch - 1 {
-                // Was skipped this key in the previous batch
+                // Se omitió esta clave en el lote anterior
                 return false;
             }
         } else {
