@@ -1,40 +1,40 @@
 # Epoch
 
-All blocks are split into epochs. Within one epoch, the set of validators is fixed, and validator rotation
-happens at epoch boundaries.
+Todos los bloques son divididos en epochs. Dentro de un epoch, el conjunto de validadores es ajustado, y la rotación de validadores
+pasa dentro de los límites del epoch.
 
-Genesis block is in its own epoch. After that, a block is either in its parent's epoch or
-starts a new epoch if it meets certain conditions.
+Un bloque génesis está en su propio epoch. Después de que un bloque está en el epoch de su padre
+o empieza en un epoch nuevo si se logran ciertas condiciones.
 
-Within one epoch, validator assignment is based on block height: each height has a block producer assigned to it, and
-each height and shard have a chunk producer.
+Dentro de un epoch, la asignación de validador está basada en la altura del bloque: cada altura tiene un productor de bloque asignado, y
+cada altura y fragmento tiene un productor de fragmento.
 
-### End of an epoch
-A block is defined to be the last block in its epoch if it's the genesis block or if the following conditions are met:
-- Let `estimated_next_epoch_start = first_block_in_epoch.height + epoch_length`
+### Final de un epoch
+Un bloque está definido para ser el último bloque en su epoch si es el bloque génesis o si las siguientes condiciones se cumplen:
+- Sea `estimated_next_epoch_start = first_block_in_epoch.height + epoch_length`
 - `block.height + 1 >= estimated_next_epoch_start`
 - `block.last_finalized_height + 3 >= estimated_next_epoch_start`
 
-`epoch_length` is defined in `genesis_config` and has a value of `43200` height delta on mainnet (12 hours at 1 block per second).
+`epoch_length` está definido en `genesis_config` y tiene un valor de altura delta `43200` en mainnet (12 horas a un bloque por segundo).
 
 ### EpochHeight
-Epochs on one chain can be identified by height, which is defined the following way:
-- Special epoch that contains genesis block only: undefined
-- Epoch starting from the block that's after genesis: `0` (NOTE: in current implementation it's `1` due to a bug, so there are two epochs with height `1`)
-- Following epochs: height of the parent epoch plus one
+Los epochs en una cadena puede ser identificados por la altura, que está definida en la siguiente manera:
+- Un epoch especial que contiene el solo bloque génesis: undefined
+- El epoch empezando del bloque que va después de génesis: `0` (NOTA: en la implementación actual es `1` debido a un bug, para que no haya epochs con altura `1`)
+- Siguientes epochs: altura del epoch padre más uno
 
 ### Epoch id
-Every block stores the id of its epoch - `epoch_id`.
+Cada bloque almacena el id de su epoch - `epoch_id`.
 
-Epoch id is defined as
-- For special genesis block epoch it's `0`
-- For epoch with height `0` it's `0` (NOTE: the first two epochs use the same epoch id)
-- For epoch with height `1` it's the hash of genesis block 
-- For epoch with height `T+2` it's the hash of the last block in epoch `T`
+El id del epoch está definida como
+- Para el bloque especial génesis epoch es `0`
+- Para el epoch con altura `0` es `0` (NOTA: los primeros dos epochs usan el mismo id de epoch)
+- Para el epoch con altura `1` es el hash del bloque génesis
+- Para el epoch con altura `T+2` es el hash de el último bloque en el epoch `T`
 
-### End of an epoch
-- After processing the last block of epoch `T`, `EpochManager` aggregates information from block of the epoch, and computes
-validator set for epoch `T+2`. This process is described in [EpochManager](EpochManager.md).
-- After that, the validator set rotates to epoch `T+1`, and the next block is produced by the validator from the new set
-- Applying the first block of epoch `T+1`, in addition to a normal transition, also applies the per-epoch state transitions:
-  validator rewards, stake unlocks and slashing.
+### Final de un epoch
+- Después de procesar el último bloque del epoch `T`, el `EpochManager` agrega información del bloque del epoch, y calcula
+el validador establecido por el epoch `T+2`. Este proceso se describe en [EpochManager](EpochManager.md).
+- Después de eso, el conjunto de validadores rota a la época `T+1`, y el siguiente bloque es producido por el validador del nuevo conjunto
+- Aplicando el primer bloque del epoch `T+1`, en adición a una transición normal, también aplica las transiciones de estado por epoch:
+  recompensas de validador, desbloqueos de stakes y slashing.
