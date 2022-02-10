@@ -200,10 +200,10 @@ El siguiente grupo no se extrae de la pool, sino de sorted_groups. La llave es `
 Ya está ordenado, por lo que el iterador regresa la referencia mutable. Los nonces son:
 `[2, 3]`. El adaptador del tiempo de ejecución extrae `2`, después extrae `3`.
 
-La transacción con nonce `2` es inválida, porque ya extraímos la transacción #1 de este grupo y tenía en nonce `2`.
+La transacción con nonce `2` es inválida, porque ya extraímos la transacción #1 de este grupo y tenía un nonce `2`.
 El nonce nuevo tiene que ser más largo que el nonce anterior, así que está transacción queda invalidada.
 
-La transacción con el nonce `3` es inválida porque el odd es impar.
+La transacción con el nonce `3` es inválida porque el nonce es impar.
 
 Ninguna transacción válida es agregada para este grupo.
 
