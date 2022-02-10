@@ -1,100 +1,101 @@
-# Upgradability
+# Capacidad de actualización
 
-This part of specification describes specifics of upgrading the protocol, and touches on few different parts of the system.
+Esta parte de la especificación describe los detalles de la actualización del protocolo, y toca algunas partes diferentes del sistema.
 
-Three different levels of upgradability are:
-1. Updating without any changes to underlying data structures or protocol;
-2. Updating when underlying data structures changed (config, database or something else internal to the node and probably client specific);
-3. Updating with protocol changes that all validating nodes must adjust to.
+Los tres diferentes niveles para la capacidad de actualización son:
+1. Actualizar sin algún cambio a las estructuras de datos subyacentes o al protocolo;
+2. Actualizar cuando las estructuras de datos subyacentes cambiaron (configuración, base de datos o algo más interno al nodo y probablemente específico del cliente);
+3. Actualizar con cambios en el protocolo a los cuales todos los nodos validadores deben de ajustarse.
 
-## Versioning
+## Versionado
 
-There are 2 different important versions:
-- Version of binary defines it's internal data structures / database and configs. This version is client specific and doesn't need to be matching between nodes.
-- Version of the protocol, defining the "language" nodes are speaking.
+Hay dos versiones importantes diferentes:
+- Versión de binario que define sus estructuras de datos internas / base de datos y configuraciones. Esta versión es específica del cliente y no necesita empatar entre los nodos.
+- Versión del protocolo, definiendo el "lenguaje" que los nodos están hablando.
 
 ```rust
-/// Latest version of protocol that this binary can work with.
+/// Última versión del protocolo con la que este binario puede trabajar.
 type ProtocolVersion = u32;
 ```
 
-## Client versioning
+## Control de versiones del cliente
 
-Clients should follow [semantic versioning](https://semver.org/).
-Specifically:
- - MAJOR version defines protocol releases.
- - MINOR version defines changes that are client specific but require database migration, change of config or something similar. This includes client-specific features. Client should execute migrations on start, by detecting that information on disk is produced by previous version and auto-migrate it to new one.
-  - PATCH version defines when bug fixes, which should not require migrations or protocol changes.
+Los clientes deben seguir el [versionado semántico](https://semver.org/lang/es/).
+Específicamente:
+ - La versión PRINCIPAL define las versiones del protocolo.
+ - La versión MENOR define los cambios que son específicos del cliente pero requieren migración de base de datos, cambio de configuración o algo similar. Esto incluye características específicas del cliente. El cliente debería ejecutar las migraciones al arrancar al detectar que la información en el disco fue producida por una versión anterior y automigrarla a la nueva.
+  - La versión PATCH define cuándo se corrigen errores, lo que no debería requerir migraciones o cambios de protocolo.
 
-Clients can define how current version of data is stored and migrations applied.
-General recommendation is to store version in the database and on binary start, check version of database and perform required migrations.
+Los clientes pueden definir que tan actual es la versión de los datos almacenados y las migraciones aplicadas.
+La recomendación genera es almacenar la versión en la base de datos y al inicio del binario, revisar la versión de la base de datos y realizar las migraciones requeridas.
 
-## Protocol Upgrade
+## Actualización del protocolo
 
-Generally, we handle data structure upgradability via enum wrapper around it. See `BlockHeader` structure for example.
+Generalmente, manejamos la capacidad de actualización de las estructuras de datos a través de un contenedor de enumeración. Vea la estructura `BlockHeader` por ejemplo.
 
-### Versioned data structures
+### Estructuras de datos versionadas
 
-Given we expect many data structures to change or get updated as protocol evolves, a few changes are required to support that.
+Dado que esperamos que muchas estructuras de datos cambien o sean actualizadas a la par de que el protocolo evoluciona, algunos cambios son requeridos para soportar eso.
 
-The major one is adding backward compatible `Versioned` data structures like this one:
+La principal es agregar estructuras de datos `Versioned` compatibles con versiones anteriores como esta:
 
 ```rust
 enum VersionedBlockHeader {
     BlockHeaderV1(BlockHeaderV1),
-    /// Current version, where `BlockHeader` is used internally for all operations.
+    /// Versión actual, donde `BlockHeader` es usado internamente para todas las operaciones.
     BlockHeaderV2(BlockHeader),
 }
 ```
 
-Where `VersionedBlockHeader` will be stored on disk and sent over the wire.
-This allows to encode and decode old versions (up to 256 given https://borsh.io specification). If some data structures has more than 256 versions, old versions are probably can be retired and reused.
+Donde `VersionedBlockHeader` será almacenado en el disco y se enviará por cable.
+Esto permite codificar y decodificar versiones anteriores (hasta 256 según la especificación https://borsh.io). Si algunas estructuras de datos tienen más de 256 versiones, las versiones anteriores probablemente pueden ser retiradas y reusadas.
 
-Internally current version is used. Previous versions either much interfaces / traits that are defined by different components or are up-casted into the next version (saving for hash validation).
+Internamente la versión actual es usada. Las versiones anteriores 
+Internally current version is used. Las versiones anteriores tienen muchas interfaces / características que están definidas por diferentes componentes o se actualizan a la próxima versión (guardar para la validación de hash).
 
-### Consensus
+### Consenso
 
 | Name | Value |
 | - | - |
 | `PROTOCOL_UPGRADE_BLOCK_THRESHOLD` | `80%` |
 | `PROTOCOL_UPGRADE_NUM_EPOCHS` | `2` |
 
-The way the version will be indicated by validators, will be via
+La manera en la que la versión será indicada por los validadores, será a través de
 
 ```rust
-/// Add `version` into block header.
+/// Agregar `version` al header del bloque.
 struct BlockHeaderInnerRest {
     ...
-    /// Latest version that current producing node binary is running on.
+    /// Última versión en la que se ejecuta el binario de nodo productor actual.
     version: ProtocolVersion,
 }
 ```
 
-The condition to switch to next protocol version is based on % of stake `PROTOCOL_UPGRADE_NUM_EPOCHS` epochs prior indicated about switching to the next version:
+La condición para cambiar a la siguiente versión del protocolo se basa en el % de stake `PROTOCOL_UPGRADE_NUM_EPOCHS` epochs antes indicadas sobre el cambio a la siguiente versión:
 
 ```python
 def next_epoch_protocol_version(last_block):
-    """Determines next epoch's protocol version given last block."""
+    """Determina la siguiente versión del protocolo epoch dado el último bloque"""
     epoch_info = epoch_manager.get_epoch_info(last_block)
-    # Find epoch that decides if version should change by walking back.
+    # Encuentra epoch que decide si la versión debería cambiar caminando hacia atrás.
     for _ in PROTOCOL_UPGRADE_NUM_EPOCHS:
         epoch_info = epoch_manager.prev_epoch(epoch_info)
         # Stop if this is the first epoch.
         if epoch_info.prev_epoch_id == GENESIS_EPOCH_ID:
             break
     versions = collections.defaultdict(0)
-    # Iterate over all blocks in previous epoch and collect latest version for each validator.
+    # Iterar sobre todos los bloques en el epoch anterior y recolectar la última versión para cada validador.
     authors = {}
     for block in epoch_info:
         author_id = epoch_manager.get_block_producer(block.header.height)
         if author_id not in authors:
             authors[author_id] = block.header.rest.version
-    # Weight versions with stake of each validator.
+    # Versiones de peso con el stake de cada validador.
     for author in authors:
         versions[authors[author] += epoch_manager.validators[author].stake
     (version, stake) = max(versions.items(), key=lambda x: x[1])
     if stake > PROTOCOL_UPGRADE_BLOCK_THRESHOLD * epoch_info.total_block_producer_stake:
         return version
-    # Otherwise return version that was used in that deciding epoch.
+    # De otra manera regresar la versión que fue usada en ese epoch decisivo.
     return epoch_info.version
 ```
