@@ -1,79 +1,78 @@
 # EpochManager
 
-## Finalizing an epoch
+## Finalizando un epoch
 
-At the last block of epoch `T`, `EpochManager` computes `EpochInfo` for epoch `T+2`, which
-is defined by `EpochInfo` for `T+1` and the information aggregated from blocks of epoch `T`.
+En el último bloque del epoch `T`, `EpochManager` calcula `EpochInfo` para el epoch `T+2`, que
+es definida por `EpochInfo` para `T+1` y la información agregada de los bloques del epoch `T`.
 
-`EpochInfo` is all the information that `EpochManager` stores for the epoch, which is:
-- `epoch_height`: epoch height (`T+2`)
-- `validators`: the list of validators selected for epoch `T+2`
-- `validator_to_index`: Mapping from account id to index in `validators`
-- `block_producers_settlement`: defines the mapping from height to block producer
-- `chunk_producers_settlement`: defines the mapping from height and shard id to chunk producer
+`EpochInfo` es toda la la información que `EpochManager` almacena para el epoch, que es:
+- `epoch_height`: altura del epoch (`T+2`)
+- `validators`: la lista de validadores seleccionados para el epoch `T+2`
+- `validator_to_index`: Mapeo desde id de la cuenta al index en `validators`
+- `block_producers_settlement`: define el mapeo desde la altura hasta el productor de bloques
+- `chunk_producers_settlement`: define el mapeo desde la altura y el id del fragmento hasta el productor de fragmentos
 - `hidden_validators_settlement`: TODO
-- `fishermen`, `fishermen_to_index`: TODO. disabled on mainnet through a large `fishermen_threshold` in config
+- `fishermen`, `fishermen_to_index`: TODO. desactivado en mainnet a través de un `fishermen_threshold` grande en configuración
 - `stake_change`: TODO
-- `validator_reward`: validator reward for epoch `T`
-- `validator_kickout`: see [Kickout set](#kickout-set)
-- `minted_amount`: minted tokens in epoch `T`
-- `seat_price`: seat price of the epoch
+- `validator_reward`: recompensa de validador para el epoch `T`
+- `validator_kickout`: vea [conjunto Kickout](#kickout-set)
+- `minted_amount`: tokens minteados en el epoch `T`
+- `seat_price`: precio asiento del epoch
 - `protocol_version`: TODO
 
-Aggregating blocks of the epoch computes the following sets:
-- `block_stats`/`chunk_stats`: uptime statistics in the form of `produced` and `expected` blocks/chunks for each validator of `T`
-- `proposals`: stake proposals made in epoch `T`. If an account made multiple proposals, the last one is used.
-- `slashes`: see [Slash set](#slash-set)
+Agregando bloques de el epoch calcula los siguientes conjuntos:
+- `block_stats`/`chunk_stats`: estadísticas de actividad en forma de bloques/fragmentos `produced` y `expected` para cada validador de `T`
+- `proposals`: propuestas de stake hechas en el epoch `T`. Si una cuenta hizo múltiples propuestas, la última es usada.
+- `slashes`: vea [conjunto Slash](#slash-set)
 
-### Slash set
-NOTE: slashing is currently disabled. The following is the current design, which can change.
+### Conjunto Slash
+NOTA: el slashing actualmente está desactivado. Lo que sigue a continuación es el diseño actual, que puede cambiar.
 
-Slash sets are maintained on block basis. If a validator gets slashed in epoch `T`, subsequent blocks of epochs `T` and 
-`T+1` keep it in their slash sets. At the end of epoch `T`, the slashed validator is also added to `kickout[T+2]`.
-Proposals from blocks in slash sets are ignored.
+Los conjuntos Slash se mantenidas en bloques. Si un validador se slashea en un epoch `T`, los bloques subsecuentes de los epochs `T` y
+`T+1` lo mantienen en sus conjuntos slash. Al final del epoch `T`, el validador slasheado también se agrega a `kickout[T+2]`.
+Las propuestas de los bloques en los conjuntos slash son ignoradas.
 
-It's kept in the slash set (and kickout sets) for two or three epochs depending on whether it was going to be a validator in `T+1`:
-- Common case: `v` is in `validators[T]` and in `validators[T+1]`
-   - proposals from `v` in `T`, `T+1` and `T+2` are ignored
-   - `v` is added to `kickout[T+2]`, `kickout[T+3]` and `kickout[T+4]`  as slashed
-   - `v` can stake again starting with the first block of `T+3`.
-- If `v` is in `validators[T]` but not in `validators[T+1]` (e.g. if it unstaked in `T-1`)
-   - proposals from `v` in `T` and `T+1` are ignored
-   - `v` is added to `kickout[T+2]` and `kickout[T+3]` as slashed
-   - `v` can make a proposal in `T+2` to become a validator in `T+4`
-- If `v` is in `validators[T-1]` but not in `validators[T]` (e.g. did slashable behavior right before rotating out)
-    - proposals from `v` in `T` and `T+1` are ignored
-    - `v` is added to `kickout[T+2]` and `kickout[T+3]` as slashed
-    - `v` can make a proposal in `T+2` to become a validator in `T+4`
+Se queda en el conjunto slash (y conjunto kickout) por dos o tres epochs dependiendo en si iba a ser un validador en `T+1`:
+- Caso común: `v` está en `validators[T]` y en `validators[T+1]`
+   - las propuestas de `v` en `T`, `T+1` y `T+2` son ignorados
+   - `v` se agrega a `kickout[T+2]`, `kickout[T+3]` y `kickout[T+4]` como slasheados
+   - `v` puede stakear otra vez empezando con el primer bloque de `T+3`.
+- Si `v` está en `validators[T]` pero no en `validators[T+1]` (e.j. si no está stakeado en `T-1`)
+   - las propuestas de `v` en `T` y `T+1` es ignorado
+   - `v` es agregado a `kickout[T+2]` y `kickout[T+3]` como slasheado
+   - `v` puede hacer una propuesta en `T+2` para volverse un validador en `T+4`
+- Si `v` está en `validators[T-1]` pero no en `validators[T]` (e.j. hizo comportamiento slashable justo antes de rotar)
+    - las propuestas de `v` en `T` y `T+1` es ignorado
+    - `v` es agregado a `kickout[T+2]` y `kickout[T+3]` como slasheado
+    - `v` puede hacer una propuesta en `T+2` para volverse un validador en `T+4`
     
-## Computing EpochInfo
+## Calculando EpochInfo
 
-### Kickout set
-`kickout[T+2]` contains validators of epoch `T+1` that stop being validators in `T+2`, and also accounts that are not
-necessarily validators of `T+1`, but are kept in slashing sets due to the rule described [above](#slash-set).
+### Conjunto Kickout
+`kickout[T+2]` contiene los validadores del epoch `T+1` que dejan de ser validadores en `T+2`, y también cuentas que no
+son necesariamente validadores de `T+1`, pero se mantienen en los conjuntos de slashing por la regla descrita [anteriormente](#slash-set).
 
-`kickout[T+2]` is computed the following way:
-1. `Slashed`: accounts in the slash set of the last block in `T`
-2. `Unstaked`: accounts that remove their stake in epoch `T`, if their stake is non-zero for epoch `T+1`
-3. `NotEnoughBlocks/NotEnoughChunks`: For each validator compute the ratio of blocks produced to expected blocks produced (same with chunks produced/expected).
-   If the percentage is below `block_producer_kickout_threshold` (`chunk_producer_kickout_threshold`), the validator is kicked out.
-    - Exception: If all validators of `T` are either in `kickout[T+1]` or to be kicked out, we don't kick out the
-      validator with the maximum number of blocks produced. If there are multiple, we choose the one with
-      lowest validator id in the epoch.
-4. `NotEnoughStake`: computed after validator selection. Accounts who have stake in epoch `T+1`, but don't meet stake threshold for epoch `T+2`.
-5. `DidNotGetASeat`: computed after validator selection. Accounts who have stake in epoch `T+1`, meet stake threshold for epoch `T+2`, but didn't get any seats.
+`kickout[T+2]` es calculado de la manera siguiente:
+1. `Slashed`: cuentas en el conjunto slash del último bloque en `T`
+2. `Unstaked`: cuentas que remueven su stake en el epoch `T`, si su stake es diferente de 0 para el epoxh `T+1`
+3. `NotEnoughBlocks/NotEnoughChunks`: Para cada validador se calcula la relación entre los bloques producidos y los bloques esperados producidos (lo mismo con fragmentos producidos/esperados).
+    - Excepción: Si todos los validadores de `T` están en `kickout[T+1]` o serán expulsados, no expulsamos el
+      validador con el máximo número de bloques producidos. Si hay múltiples, escogemos el que tenga el id
+      de validador mínimo en el epoch.
+4. `NotEnoughStake`: calculado después de la selección de validador. Las cuentas que tienen stake en el epoch `T+1`, pero no alcanza el umbral del stake para el epoch `T+2`.
+5. `DidNotGetASeat`: calculado después de la selección de validador. Las cuentas que tienen stake en el epoch `T+1`, alcanza el umbral para el epoch `T+2`, pero no obtuvo ningún asiento.
 
-### Processing proposals
-The set of proposals is processed by the validator selection algorithm, but before that, the set of proposals is adjusted
-the following way:
-1. If an account is in the slash set as of the end of `T`, or gets kicked out for `NotEnoughBlocks/NotEnoughChunks` in epoch `T`,
-  its proposal is ignored.
-3. If a validator is in `validators[T+1]`, and didn't make a proposal, add an implicit proposal with its stake in `T+1`.
-2. If a validator is in both `validators[T]` and `validators[T+1]`, and made a proposal in `T` (including implicit),
-  then its reward for epoch `T` is automatically added to the proposal.
+### Procesamiento de propuestas
+El conjunto de propuestas es procesado por el algoritmo de selección de validador, pero antes de eso, el conjunto de propuestas es ajustado
+de la siguiente manera:
+1. Si una cuenta está en el conjunto slash a partir del final del `T`, o se expulsa para `NotEnoughBlocks/NotEnoughChunks` en el epoch `T`,
+  su propuesta es ignorada.
+2. Si un validador está en `validators[T+1]`, y no hizo una propuesta, agrega una propuesta implícita con su stake en `T+1`.
+3. Si un validador está en `validators[T]` y `validators[T+1]`, e hizo una propuesta en `T` (incluyendo las implícitas),
+  entonces sus recompensas por epoch `T` es automáticamente agregada a la propuesta.
 
-The adjusted set of proposals is used to compute the seat price, and determine `validators`,`block_producers_settlement`,
-`chunk_producers_settlement`sets. This algorithm is described in [Economics](../../Economics/README.md#validator-selection).
+El conjunto ajustado de propuestas es usado para calcular el precio asiento, y determinar `validators`,`block_producers_settlement` y 
+los conjuntos `chunk_producers_settlement`. Este algoritmo está descrito en [Economía](../../Economics/README.md#validator-selection).
 
-### Validator reward
-Rewards calculation is described in the [Economics](../../Economics/README.md#rewards-calculation) section.
+### Recompensa de validador
+El cálculo de recompensas se describe en la sección [Economía](../../Economics/README.md#rewards-calculation).
