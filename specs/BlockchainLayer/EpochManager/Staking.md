@@ -1,27 +1,27 @@
-# Staking and slashing
+# Staking y slashing
 
-## Stake invariant
-`Account` has two fields representing its tokens: `amount` and `locked`. `amount + locked` is the total number of
-tokens an account has: locking/unlocking actions involve transferring balance between the two fields, and slashing
-is done by subtracting from the `locked` value.
+## Invariante Stake
+`Account` tiene dos campos representando sus tokens: `amount` y `locked`. `amount + locked` es el número total de
+tokens que una cuenta tiene: las acciones de bloqueo/desbloqueo involucra transferencia de balance entre los dos campos, y el
+slashing es realizado al restar del valor `locked`.
 
-On a stake action the balance gets locked immediately (but the locked balance can only increase), and the stake proposal is 
-passed to the epoch manager. Proposals get accumulated during an epoch and get processed all at once when an epoch is finalized.
-Unlocking only happens at the start of an epoch.
+En una acción stake el balance se bloquea inmediatamente (el balance bloqueado solo puede incrementar), y la propuesta de stake es
+pasado al epoch manager. Las propuestas se acumulan durante un epoch y se procesan todas de una cuando un epoch es finalizado.
+El desbloqueo solo pasa al inicio de un epoch.
 
-Account's stake is defined per epoch and is stored in `EpochInfo`'s `validators` and `fishermen` sets. `locked` is always
-equal to the maximum of the last three stakes and the highest proposal in the current epoch.
+El stake de la cuenta es definido por epoch y es almacenado en los `validators` `EpochInfo` y los conjuntos `fishermen`. `locked`
+siempre es igual al máximo de los últimos tres stakes y la propuesta más alta en el epoch actual.
 
 
-### Returning stake
-`locked` is the number of tokens locked for staking, it's computed the following way:
-- initially it's the value in genesis or `0` for new accounts
-- on a staking proposal with a value higher than `locked`, it increases to that value
-- at the start of each epoch it's recomputed:
-    1. consider the most recent 3 epochs
-    2. for non-slashed accounts, take the maximum of their stakes in those epochs
-    3. if an account made a proposal in the block that starts the epoch, also take the maximum with the proposal value
-    4. change `locked` to the resulting value (and update `amount` so that `amount + locked` stays the same)
+### Regresando el stake
+`locked` es el número de tokens bloqueados para staking, se calcula de siguiente manera:
+- inicialmente es el valor en génesis o `0` para las nuevas cuentas
+- en una propuesta de staking con un valor más alto que `locked`, se incrementa a ese valor
+- al inicio de cada epoch se recalcula:
+    1. considera los 3 epochs más recientes
+    2. para las cuentas no slasheadas, toma el máximo de sus stakes en esos epochs
+    3. si una cuenta hizo una propuesta en el bloque que empieza el epoch, también toma el máximo con el valor de la propuesta
+    4. cambia `locked` al valor resultante (y actualiza `amount` para que `amount + locked` se quede igual)
 
 ### Slashing
 TODO.
