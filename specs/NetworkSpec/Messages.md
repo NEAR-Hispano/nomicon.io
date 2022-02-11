@@ -1,18 +1,18 @@
-# Messages
+# Mensajes
 
-All message sent in the network are of type `PeerMessage`. They are encoded using [Borsh](https://borsh.io/) which allows a rich structure, small size and fast encoding/decoding. For details about data structures used as part of the message see the [reference code](https://github.com/nearprotocol/nearcore).
+Todos los mensajes enviados en la red son del tipo `PeerMessage`. Se codifican usando [Borsh](https://borsh.io/) que permite una estructura rica, de tamaño pequeño y un codificado/decodificado rápido. Para más detalles sobre las estructuras de datos usadas como parte de un mensaje vea el [código de referencia](https://github.com/nearprotocol/nearcore).
 
-## Encoding
+## Codificado
 
-A `PeerMessage` is converted into an array of bytes (`Vec<u8>`) using borsh serialization. An encoded message is conformed by 4 bytes with the length of the serialized `PeerMessage` concatenated with the serialized `PeerMessage`.
+Un `PeerMessage` es convertido en un arreglo de bytes (`Vec<u8>`) usando la serialización borsh. Un mensaje codificado está conformado por 4 bytes con la longitud del `PeerMessage` serializado concatenado con el `PeerMessage` serializado.
 
-Check [Borsh specification](https://github.com/nearprotocol/borsh#specification) details to see how it handles each data structure.
+Revise los detalles de la [especificación Borsh](https://github.com/nearprotocol/borsh#specification) para que vea como maneja cada estructura de datos.
 
-## Data structures
+## Estructura de datos
 
 ### PeerID
 
-The id of a peer in the network is its [PublicKey](https://github.com/nearprotocol/nearcore/blob/master/core/crypto/src/signature.rs).
+El id de un peer en la red es su [PublicKey](https://github.com/nearprotocol/nearcore/blob/master/core/crypto/src/signature.rs).
 
 ```rust
 struct PeerId(PublicKey);
@@ -29,7 +29,7 @@ struct PeerInfo {
 }
 ```
 
-`PeerInfo` contains relevant information to try to connect to other peer. [`SocketAddr`](https://doc.rust-lang.org/std/net/enum.SocketAddr.html) is a tuple of the form: `IP:port`.
+`PeerInfo` contiene información relevante para intentar conectarse a otro peer. [`SocketAddr`](https://doc.rust-lang.org/std/net/enum.SocketAddr.html) es una tupla de la forma: `IP:port`.
 
 ### AccountID
 
@@ -43,9 +43,9 @@ type AccountId = String;
 enum PeerMessage {
     Handshake(Handshake),
     HandshakeFailure(PeerInfo, HandshakeFailureReason),
-    /// When a failed nonce is used by some peer, this message is sent back as evidence.
+    /// Cuando un nonce fallido es usado par algún peer, este mensaje se envía de regreso como evidencia.
     LastEdge(Edge),
-    /// Contains accounts and edge information.
+    /// Contiene cuentas e información de borde.
     Sync(SyncData),
     RequestUpdateNonce(EdgeInfo),
     ResponseUpdateNonce(Edge),
@@ -57,7 +57,7 @@ enum PeerMessage {
     Block(Block),
     Transaction(SignedTransaction),
     Routed(RoutedMessage),
-    /// Gracefully disconnect from other peer.
+    /// Desconectado de forma correcta de otro peer.
     Disconnect,
     Challenge(Challenge),
 }
@@ -65,17 +65,17 @@ enum PeerMessage {
 
 ### AnnounceAccount
 
-Each peer should announce its account
+Cada cuenta debe anunciar su cuenta
 
 ```rust
 struct AnnounceAccount {
-    /// AccountId to be announced.
+    /// ID de cuenta a ser anunciado.
     account_id: AccountId,
-    /// PeerId from the owner of the account.
+    /// PeerId del dueño de la cuenta.
     peer_id: PeerId,
-    /// This announcement is only valid for this `epoch`.
+    /// Este anuncio es solo válido para este `epoch`.
     epoch_id: EpochId,
-    /// Signature using AccountId associated secret key.
+    /// Firma usando la llave secreta asociada con el ID de cuenta.
     signature: Signature,
 }
 ```
@@ -84,19 +84,19 @@ struct AnnounceAccount {
 
 ```rust
 struct Handshake {
-    /// Protocol version.
+    /// Versión del protocolo
     pub version: u32,
-    /// Oldest supported protocol version.
+    /// Versión de protocolo compatible más antigua.
     pub oldest_supported_version: u32,
-    /// Sender's peer id.
+    /// ID del peer del que envía.
     pub peer_id: PeerId,
-    /// Receiver's peer id.
+    /// ID del peer del que recibe.
     pub target_peer_id: PeerId,
-    /// Sender's listening addr.
+    /// Dirección de escucha del remitente.
     pub listen_port: Option<u16>,
-    /// Peer's chain information.
+    /// Cadena de información del Peer.
     pub chain_info: PeerChainInfoV2,
-    /// Info for new edge.
+    /// Información para el nuevo borde.
     pub edge_info: EdgeInfo,
 }
 ```
@@ -107,17 +107,17 @@ struct Handshake {
 
 ```rust
 struct Edge {
-    /// Since edges are not directed `peer0 < peer1` should hold.
+    /// Dado que los bordes no están dirigidos, `peer0 < peer1` debería mantenerse.
     peer0: PeerId,
     peer1: PeerId,
-    /// Nonce to keep tracking of the last update on this edge.
+    /// Nonce para realizar el seguimiento la última actualización de este borde.
     nonce: u64,
-    /// Signature from parties validating the edge. These are signature of the added edge.
+    /// Firma de las partes validando el borde. Estas son la firma del borde agregado.
     signature0: Signature,
     signature1: Signature,
-    /// Info necessary to declare an edge as removed.
-    /// The bool says which party is removing the edge: false for Peer0, true for Peer1
-    /// The signature from the party removing the edge.
+    /// Información necesaria para declarar un borde como removido.
+    /// El bool dice que parte está removiendo el borde: false para el Peer0, true para el Peer1
+    /// La firma de la parte que está removiendo el borde.
     removal_info: Option<(bool, Signature)>,
 }
 ```
@@ -135,18 +135,18 @@ struct EdgeInfo {
 
 ```rust
 struct RoutedMessage {
-    /// Peer id which is directed this message.
-    /// If `target` is hash, this a message should be routed back.
+    /// ID del peer al que este mensaje va dirigido.
+    /// Si `target` es un hash, este mensaje debe ser regresado.
     target: PeerIdOrHash,
-    /// Original sender of this message
+    /// El remitente original de este mensaje
     author: PeerId,
-    /// Signature from the author of the message. If this signature is invalid we should ban
-    /// last sender of this message. If the message is invalid we should ben author of the message.
+    /// Firma del autor del mensaje. Si esta firma es inválida debemos banear al último
+    /// remitente de este mensaje. Si el mensaje es inválido debemos banear al autor del mensaje.
     signature: Signature,
-    /// Time to live for this message. After passing through some hop this number should be
-    /// decreased by 1. If this number is 0, drop this message.
+    /// El tiempo para vivir de este mensaje. Después de pasar algunos saltos este numero debe ser
+    /// decrementado por 1. Si este número es 0, descartar este mensaje.
     ttl: u8,
-    /// Message
+    /// Mensaje
     body: RoutedMessageBody,
 }
 ```
@@ -184,7 +184,7 @@ enum RoutedMessageBody {
 
 ## CryptoHash
 
-`CryptoHash` are objects with 256 bits of information.
+`CryptoHash` son objetos con 256 bits de información.
 
 ```rust
 pub struct Digest(pub [u8; 32]);
