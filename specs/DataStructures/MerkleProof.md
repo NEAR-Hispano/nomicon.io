@@ -1,7 +1,7 @@
-# Merkle Proofs
+# Pruebas Merkle
 
-Many components of NEAR Protocol rely on Merkle root and Merkle proofs. For an array of sha256 hashes, we define its
-merkle root as:
+Muchos componentes del Protocolo NEAR dependen de la raíz Merkle y las pruebas Merkle. Para un arreglo de hashes sha256, definimos su
+raíz merkle como:
 ```python
 CRYPTOHASH_DEFAULT = [0] * 32
 def combine_hash(hash1, hash2):
@@ -20,13 +20,13 @@ def merkle_root(hashes):
         return combine_hash(left_root, right_root)
 ```
 
-Generally, for an array of borsh-serializable object, its merkle root is defined as
+Generalmente, para un arreglo de objetos serializables borsh, su root merkle es definida como
 ```python
 def arr_merkle_root(arr):
     return merkle_root(list(map(lambda x: sha256(borsh(x)), arr)))
 ```
 
-A Merkle proof is defined by:
+Una prueba merkle es definida por:
 ```rust
 pub struct MerklePathItem {
     pub hash: MerkleHash,
@@ -41,7 +41,7 @@ pub enum Direction {
 pub type MerkleProof = Vec<MerklePathItem>;
 ```
 
-The verification of a hash `h` against a proclaimed merkle root `r` with proof `p` is defined by:
+La verificación de un hash `h` contra una raíz merkle proclamada `r` con prueba `p` se define por:
 ```python
 def compute_root(h, p):
     res = h
