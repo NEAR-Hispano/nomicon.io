@@ -1,136 +1,137 @@
-# Runtime crate
+# Crate Runtime
 
-Runtime crate encapsulates the logic of how transactions and receipts should be handled. If it encounters
-a smart contract call within a transaction or a receipt it calls `near-vm-runner`, for all other actions, like account
-creation, it processes them in-place.
+El crate Runtime encapsula la lógica de como las transacciones y recibos deberían ser manejadas. Si encuentra
+una llamada de contrato inteligente dentro de una transacción o a un recibo llama a `near-vm-runner`, para todas las otras acciones, como creación
+de cuenta, las procesa en el momento.
 
-## Runtime class
+## Clase Runtime
 
-The main entry point of the `Runtime` is method `apply`.
-It applies new singed transactions and incoming receipts for some chunk/shard on top of
-given trie and the given state root.
-If the validator accounts update is provided, updates validators accounts.
-All new signed transactions should be valid and already verified by the chunk producer.
-If any transaction is invalid, the method returns an `InvalidTxError`.
-In case of success, the method returns `ApplyResult` that contains the new state root, trie changes,
-new outgoing receipts, stats for validators (e.g. total rent paid by all the affected accounts),
-execution outcomes.
+El punto de entrada principar de `Runtime` es el método `apply`.
+Aplica una nueva transacción firmada y recibos entrantes para algún fragmento además del
+trie dado y la raíz del estado dado.
+Si la actualización de las cuentas del validador es proporcionada, actualizar las cuentas del validador.
+Todas las transacciones firmadas nuevas deberían se válidas y ya verificadas por el productor de fragmentos.
+Si alguna transacción es inválida, el método regresa un `InvalidTxError`.
+En caso de éxito, el método regresa `ApplyResult` que contiene el nuevo estado de raíz, cambios en el trie,
+nuevos recibos salientes, estadísticas de los validadores (e.j. renta total pagada por todas las cuentas afectadas),
+salidas de ejecución.
 
-### Apply arguments
+### Argumentos de Apply
 
-It takes the following arguments:
+Toma los siguientes argumentos:
 
-- `trie: Arc<Trie>` - the trie that contains the latest state.
-- `root: CryptoHash` - the hash of the state root in the trie.
-- `validator_accounts_update: &Option<ValidatorAccountsUpdate>` - optional field that contains updates for validator accounts.
-  It's provided at the beginning of the epoch or when someone is slashed.
-- `apply_state: &ApplyState` - contains block index and timestamp, epoch length, gas price and gas limit.
-- `prev_receipts: &[Receipt]` - the list of incoming receipts, from the previous block.
-- `transactions: &[SignedTransaction]` - the list of new signed transactions.
+- `trie: Arc<Trie>` - el trie que contiene el estado más reciente.
+- `root: CryptoHash` - el hash de la raíz del estado en el trie.
+- `validator_accounts_update: &Option<ValidatorAccountsUpdate>` - campo opcional que contiene actualizaciones para cuentas de validador.
+  Se proporciona al principio de cada epoch y cuando alguien es slasheado.
+- `apply_state: &ApplyState` - contiene el índice del bloque y la marca de tiempo, logitud del epoch, precio del gas y el límite de gas.
+- `prev_receipts: &[Receipt]` - la lista de os recibos entrantes, del bloque anterior.
+- `transactions: &[SignedTransaction]` - la lista de transacciones nuevas firmadas.
 
-### Apply logic
+### Lógica de Apply
 
-The execution consists of the following stages:
+La ejecución consiste de las siguiente etapas:
 
-1. Snapshot the initial state.
-1. Apply validator accounts update, if available.
-1. Convert new signed transactions into the receipts.
-1. Process receipts.
-1. Check that incoming and outgoing balances match.
-1. Finalize trie update.
-1. Return `ApplyResult`.
+1. Hace un snapshot del estado inicial.
+1. Aplica las actualizaciones de las cuentas de validador, si están disponibles.
+1. Convierte transacciones firmadas nuevas en recibos.
+1. Procesa los recibos.
+1. Revisa que los balances entrantes y salientes cuadren.
+1. Finaliza la actualización del trie.
+1. Regresa `ApplyResult`.
 
-## Validator accounts update
+## Actualización de las cuentas de validador
 
-Validator accounts are accounts that staked some tokens to become a validator.
-The validator accounts update usually happens when the current chunk is the first chunk of the epoch.
-It also happens when there is a challenge in the current block with one of the participants belong to the current shard.
+Las cuentas de validador son cuentas que stakearon algunos tokens para convertirse en un validador.
+La actualización de cuentas de validador usualmente pasa cuando el fragmento actual es el primero del epoch.
+También pasa cuando hay un reto en el bloque actual con uno de los participantes que pertenece al fragmento actual. 
 
-This update distributes validator rewards, return locked tokens and maybe slashes some accounts out of their stake.
+Esta actualización distribuye las recompensas de validador, regresa tokens bloqueados y tal vez slashee algunas cuentas fuera de su stake.
 
-## Signed Transaction conversion
+## Conversión de transacción firmada
 
-New signed transaction transactions are provided by the chunk producer in the chunk. These transactions should be ordered and already validated.
-Runtime does validation again for the following reasons:
+Las transacciones de transacciones nuevas firmadas son provistas por el productor de fragmentos en el fragmento. Estas transacciones deberían estar ordenadas y ya estar validadas.
+Runtime vuelve a hacer otra validación por las siguientes razones:
 
-- to charge accounts for transactions fees, transfer balances, prepaid gas and account rents;
-- to create new receipts;
-- to compute burnt gas;
-- to validate transactions again, in case the chunk producer was malicious.
+- para cobrar a las cuentas por tarifas de transacción, transferencia de balances, gas prepagado y rentas de cuentas;
+- para cerar recibos nuevos;
+- para calcular el gas quemado;
+- para validar las transacciones otra vez, en caso de que el productor de fragmentos sea malicioso.
 
-If the transaction has the the same `signer_id` and `receiver_id`, then the new receipt is added to the list of new local receipts,
-otherwise it's added to the list of new outgoing receipts.
+Si la transacción tiene el mismo `signer_id` y `receiver_id`, entonces el recibo nuevo es agregado a la lista de los recibos locales nuevos,
+de otra manera es agregado a la lista de nuevos recibos salientes.
 
-## Receipt processing
+## Procesamiento de recibos
 
-Receipts are processed one by one in the following order:
+Los recibos son procesados uno por uno en el siguiente orden:
 
-1. Previously delayed receipts from the state.
-1. New local receipts.
-1. New incoming receipts.
+1. Recibos anteriormente retrasados del estado.
+1. Nuevos recibos locales.
+1. Nuevos recibos entrantes.
 
-After each processed receipt, we compare total gas burnt (so far) with the gas limit.
-When the total gas burnt reaches or exceeds the gas limit, the processing stops.
-The remaining receipts are considered delayed and stored into the state.
+Después de cada recibo procesado, comparamos el gas quemado total (hasta ahora) con el límite del gas.
+Cuando el gas quemado total alcanza o excede el límite del gas, el procesamiento se detiene.
+Los recibos restantes son considerados como retrasados y almacenados en el estado.
 
-### Delayed receipts
+### Recibos retrasados
 
-Delayed receipts are stored as a persistent queue in the state.
-Initially, the first unprocessed index and the next available index are initialized to 0.
-When a new delayed receipt is added, it's written under the next available index in to the state and the next available index is incremented by 1.
-When a delayed receipt is processed, it's read from the state using the first unprocessed index and the first unprocessed index is incremented.
-At the end of the receipt processing, the all remaining local and incoming receipts are considered to be delayed and stored to the state in their respective order.
-If during receipt processing, we've changed indices, then the delayed receipt indices are stored to the state as well.
+Los recibos retrasados son almacenados como una cola persistente en el estado.
+Inicialmente, el primer índice no procesado y el siguiente índice disponible son inicializados en 0.
+Cuando un nuevo recibo retrasado es agregado, se escribe bajo el siguiente índice disponible en el estado y el siguiente índice disponible se incrementa por 1.
+Cuando un nuevo recibo retrasado es procesado, es leido del estado usando el primer índice no procesado y el primer índice no procesado es incrementado.
+Al final del procesamiento de recibo, todos los recibos locales y entrantes restantes son considerados como restrasados y se guardan en el estado en su orden respectivo.
+Si durante el procesamiento de recibos, hemos cambiado índices, entonces los ínidices de los recibos retrasados también son guardados en el estado.
 
-### Receipt processing algorithm
+### Algoritmo de procesamiento de recibo
 
-The receipt processing algorithm is the following:
+El algoritmo de procesamiento de recibo es el siguiente:
 
-1. Read indices from the state or initialize with zeros.
-1. While the first unprocessed index is less than the next available index do the following
-   1. If the total burnt gas is at least the gas limit, break.
-   1. Read the receipt from the first unprocessed index.
-   1. Remove the receipt from the state.
-   1. Increment the first unprocessed index.
-   1. Process the receipt.
-   1. Add the new burnt gas to the total burnt gas.
-   1. Remember that the delayed queue indices has changed.
-1. Process the new local receipts and then the new incoming receipts
-   - If the total burnt gas is less then the gas limit:
-     1. Process the receipt.
-     1. Add the new burnt gas to the total burnt gas.
-   - Else:
-     1. Store the receipt under the next available index.
-     1. Increment the next available index.
-     1. Remember that the delayed queue indices has changed.
-1. If the delayed queue indices has changed, store the new indices to the state.
+1. Leer los índices del estado o inicializarlos con ceros.
+1. Mientras que el primer índice no procesado es menor que el próximo índice disponible hacer lo siguiente
+   1. Si el gas quemado total es al menos el límite del gas, detener.
+   1. Leer el recibo del primero índice no procesado.
+   1. Remover el recibo del estado.
+   1. Incrementar el primer índice no procesado.
+   1. Procesar el recibo.
+   1. Agregar el nuevo gas quemado al total de gas quemado.
+   1. Recordar que los ínidices de la cola retrasada han cambiado.
+1. Procesar los recibos locales nuevos y después los recibos entrantes nuevos
+   - Si el total de gas quemado es menor que el límite del gas:
+     1. Procesar el recibo.
+     1. Agregar el nuevo gas quemado al total de gas quemado.
+   - Si no:
+     1. Almacenar el recibo bajo el siguiente nuevo índice disponible.
+     1. Incrementar el siguiente índice disponible.
+     1. Recordar que los ínidices de la cola retrasada han cambiado.
+1. Si los índices de la cola retrasada han cambiado, almacena los índices nuevos en el estado.
 
-## Balance checker
+## Comprobador de balance
 
-Balance checker computes the total incoming balance and the total outgoing balance.
+El comprobador de balance calcula el total de balance entrante y el total del balance saliente.
 
-The total incoming balance consists of the following:
+El total de balance entrante consite de lo siguiente:
 
-- Incoming validator rewards from validator accounts update.
-- Sum of the initial accounts balances for all affected accounts. We compute it using the snapshot of the initial state.
-- Incoming receipts balances. The prepaid fees and gas multiplied their gas prices with the attached balances from transfers and function calls.
-  Refunds are considered to be free of charge for fees, but still has attached deposits.
-- Balances for the processed delayed receipts.
-- Initial balances for the postponed receipts. Postponed receipts are receipts from the previous blocks that were processed, but were not executed.
-  They are action receipts with some expected incoming data. Usually for a callback on top of awaited promise.
-  When the expected data arrives later than the action receipt, then the action receipt is postponed.
-  Note, the data receipts are 0 cost, because they are completely prepaid when issued.
+- Recompensas de validador entrantes de la actualización de cuentas de validador.
+- Suma de los balances iniciales de las cuentas para todas las cuentas afectadas. Lo calculamos usando el snapshot del estado incial.
+- Balances de recibo entrantes. Las tarifas prepagadas y el gas multiplicado
+- Incoming receipts balances. Las tarifas de prepago y gas multiplicaron sus precios de gas con los saldos adjuntos de transferencias y llamadas de función.
+  Los reembolsos son considerados libres de cargos por tarifas, pero aún así tienen depositos adjuntos.
+- Los balances para los recibos retrasados procesados.
+- Los balances iniciales para los recibos pospuestos. Los recibos pospuestos son recibos de bloque anteriores que fueron procesados, pero no ejecutados.
+  Son recibos de acción con algunos datos entrantes esperados. Usualmente para un callback además de la promesa esperada.
+  Cuando los datos esperados llegan después que el recibo de acción, entonces el recibo de acción es pospuesto.
+  Nota, los recibos de datos tienen un costo de 0, porque son prepagados cuando se emiten.
 
-The total outgoing balance consists of the following:
+El balance total saliente consiste de lo siguiente:
 
-- Sum of the final accounts balance for all affected accounts.
-- Outgoing receipts balances.
-- New delayed receipts. Local and incoming receipts that were not processed this time.
-- Final balances for the postponed receipts.
-- Total rent paid by all affected accounts.
-- Total new validator rewards. It's computed from total gas burnt rewards.
-- Total balance burnt. In case the balance is burnt for some reason (e.g. account was deleted during the refund), it's accounted there.
-- Total balance slashed. In case a validator is slashed for some reason, the balance is account here.
+- Suma de el balance final de las cuentas para todas las cuentas afectadas.
+- Balances de recibos salientes.
+- Nuevos recibos retrasados. Los recibos locales y salientes que no fueron procesados esta vez.
+- Balances finales para los recibos pospuestos.
+- Renta total pagada por todas las cuentas afectadas.
+- Recompensas totales de nuevos validadores. Se calcula a partir de las recompensas totales de gas quemado.
+- Balance total quemado. Encaso de que el balance sea quemado por alguna razón (e.j. la cuenta fue eliminada durante un reembolso), se contabiliza ahí.
+- Balance total slasheado. En caso de que un validor sea slasheado por alguna razón, el balance se cuenta aquí.
 
-When you sum up incoming balances and outgoing balances, they should match.
-If they don't match, we throw an error.
+Cuando sumas los balances entrantes y salientes, deben cuadrar.
+Si no cuadran, arrojamos un error.
