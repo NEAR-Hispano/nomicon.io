@@ -1,14 +1,14 @@
-# Math API
+# API Math
 
 ```rust
 random_seed(register_id: u64)
 ```
 
-Returns random seed that can be used for pseudo-random number generation in deterministic way.
+Regresa una semilla aleatoria que puede ser usada para la generación de número pseudo-aleatorio de una manera determinista.
 
-###### Panics
+###### Pánicos
 
-- If the size of the registers exceed the set limit `MemoryAccessViolation`;
+- Si el tamaño del registro excede el límite establecido `MemoryAccessViolation`;
 
 ---
 
@@ -16,11 +16,11 @@ Returns random seed that can be used for pseudo-random number generation in dete
 sha256(value_len: u64, value_ptr: u64, register_id: u64)
 ```
 
-Hashes the random sequence of bytes using sha256 and returns it into `register_id`.
+Hashea la secuencia de bytes aleatoria usando sha256 y la regresa a `register_id`.
 
-###### Panics
+###### Pánicos
 
-- If `value_len + value_ptr` points outside the memory or the registers use more memory than the limit with `MemoryAccessViolation`.
+- Si `value_len + value_ptr` apunta por fuera de la memoria o los registros usan más memoria que el límite, con `MemoryAccessViolation`.
 
 ---
 
@@ -28,11 +28,11 @@ Hashes the random sequence of bytes using sha256 and returns it into `register_i
 keccak256(value_len: u64, value_ptr: u64, register_id: u64)
 ```
 
-Hashes the random sequence of bytes using keccak256 and returns it into `register_id`.
+Hashea la secuencia aleatoria de bytes usando keccak256 y la regresa a `register_id`.
 
-###### Panics
+###### Pánicos
 
-- If `value_len + value_ptr` points outside the memory or the registers use more memory than the limit with `MemoryAccessViolation`.
+- Si `value_len + value_ptr` apunta por fuera de la memoria o los registros usan más memoria que el límite, con `MemoryAccessViolation`.
 
 ---
 
@@ -40,8 +40,8 @@ Hashes the random sequence of bytes using keccak256 and returns it into `registe
 keccak512(value_len: u64, value_ptr: u64, register_id: u64)
 ```
 
-Hashes the random sequence of bytes using keccak512 and returns it into `register_id`.
+Hashea la secuencia aleatoria de bytes usando keccak512 y los regresa a `register_id`.
 
 ###### Panics
 
-- If `value_len + value_ptr` points outside the memory or the registers use more memory than the limit with `MemoryAccessViolation`.
+- Si `value_len + value_ptr` apunta por fuera de la memoria o los registros usan más memoria que el límite, con `MemoryAccessViolation`.
