@@ -1,29 +1,29 @@
-# Bindings Specification
+# Especificación de Unión
 
-This is the low-level interface available to the smart contracts, it consists of the functions that the host (represented by
-Wasmer inside near-vm-runner) exposes to the guest (the smart contract compiled to Wasm).
+Esta es la interfaz de bajo nivel disponible para el contrato inteligente, consiste de las funciones que el host (representado por
+el Wasmer dentro de near-vm-runner) expone al invitado (el contrato inteligente compilado para Wasm).
 
-Due to Wasm restrictions the methods operate only with primitive types, like `u64`.
+Debido a las restricciones de Wasm, los métodos operan solo con tipos primitivos, como `u64`.
 
-Also for all functions in the bindings specification the following is true:
+También para todas las funciones en la especificación de uniones lo siguiente es verdadero:
 
-- Method execution could result in `MemoryAccessViolation` error if one of the following happens:
-  - The method causes host to read a piece of memory from the guest but it points outside the guest's memory;
-  - The guest causes host to read from the register, but register id is invalid.
+- La ejecución de método puede resultar en el error `MemoryAccessViolation` si una de las siguientes pasa:
+  - El método causa que el host rea una pieza de memoria del invitado pero apunta fuera de la memoria del invitado;
+  - El invitado causa que el host lea del registro, pero el id del registro es inválido.
 
-Execution of a bindings function call result in an error being generated. This error causes execution of the smart contract
-to be terminated and the error message written into the logs of the transaction that caused the execution. Many bindings
-functions can throw specialized error messages, but there is also a list of error messages that can be thrown by almost
-any function:
+Ejecución de una llamada de función de uniones da como resultado la generación de un error. Este error causa la terminación de la ejecución
+del contrato inteligente y el mensaje de error se escribe en los logs de la transacción que causaron la ejecución. Muchas funciones de 
+unión puede lanzar mensajes de error especializados, pero hay también una lista de mensajes de error que pueden ser lanzados por casi
+cualquier función:
 
-- `IntegerOverflow` -- happens when guest passes some data to the host but when host tries to apply arithmetic operation
-  on it it causes overflow or underflow;
-- `GasExceeded` -- happens when operation performed by the guest causes more gas than the remaining prepaid gas;
-- `GasLimitExceeded` -- happens when the execution uses more gas than allowed by the global limit imposed in the economics
-  config;
-- `StorageError` -- happens when method fails to do some operation on the trie.
+- `IntegerOverflow` -- pasa cuando el invitado pasa alguna información al host pero cuando el host trata de aplicar una operación aritmética
+  en el, causa un overflow o underflow;
+- `GasExceeded` -- pasa cuando la operación realizada por el invitado causa más gas del gas prepagado restante;
+- `GasLimitExceeded` -- pasa cuando la ejecución usa más gas del permitido por el límite global, el cual se impuso en la configuración
+  de la economía
+- `StorageError` -- pasa cuando el método falla al hacer alguna operación en el trie.
 
-The following binding methods cannot be invoked in a view call:
+Los siguientes métodos de unión no pueden ser invocados en una llamada view:
 
 - `signer_account_id`
 - `signer_account_pk`
@@ -49,4 +49,4 @@ The following binding methods cannot be invoked in a view call:
 - `promise_result`
 - `promise_return`
 
-If they are invoked the smart contract execution will panic with `ProhibitedInView(<method name>)`.
+Si se invocan la ejecución del contrato inteligente entrará en pánico con `ProhibitedInView(<method name>)`.
