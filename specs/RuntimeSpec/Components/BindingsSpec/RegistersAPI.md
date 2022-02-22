@@ -1,56 +1,56 @@
-# Registers API
+# API de registros
 
-Registers allow the host function to return the data into a buffer located inside the host oppose to the buffer
-located on the client. A special operation can be used to copy the content of the buffer into the host. Memory pointers
-can then be used to point either to the memory on the guest or the memory on the host, see below. Benefits:
+Los registros permiten a la función host retornar los datos en un búfer localizado dentro del host opuesto al búfer
+localizado en el cliente. Una operación especial puede ser usada para copiar el contenido del búfer al host. Los apuntadores
+de memoria entonces puede ser usados para apuntar la memoria en el invitado o la memoria en el host, vea a continuación. Beneficios:
 
-- We can have functions that return values that are not necessarily used, e.g. inserting key-value into a trie can
-  also return the preempted old value, which might not be necessarily used. Previously, if we returned something we
-  would have to pass the blob from host into the guest, even if it is not used;
-- We can pass blobs of data between host functions without going through the guest, e.g. we can remove the value
-  from the storage and insert it into under a different key;
-- It makes API cleaner, because we don't need to pass `buffer_len` and `buffer_ptr` as arguments to other functions;
-- It allows merging certain functions together, see `storage_iter_next`;
-- This is consistent with other APIs that were created for high performance, e.g. allegedly Ewasm have implemented
-  SNARK-like computations in Wasm by exposing a bignum library through stack-like interface to the guest. The guest
-  can manipulate then with the stack of 256-bit numbers that is located on the host.
+- Podemos tener funciones que devuelven valores que no son necesariamente usados, ej. el insertar llave-valor en un trie puede
+  también regresar el valor anterior reemplazado, que no será necesariamente usado. Previamente, si regresamos algo tendríamos
+  que pasar el blob del host al invitado, incluso si no es usado;
+- Podemos pasar blobs de datos entre funciones host sin pasar por el invitado, ej. podemos remover el valor del
+  almacenamiento e insertarlo con una clave diferente;
+- Hace a la API más limpia, debido a que no neceistamos pasar `buffer_len` y `buffer_ptr` como argumentos a otras funciones;
+- Permite fusionar ciertas funciones juntas, vea `storage_iter_next`;
+- Esto es consistente con otras APIs que fueron creadas para alto rendimiento, ej. supuestamente Ewasm implmentó cálculos
+  parecidos a SNARK en Wasm al exponer una librería bignum a través de una interfaz parecida a una pila al invitado. El invitado
+  pueden manipular entonces con la pila de 256-bit números que está localizada en el host.
 
-#### Host → host blob passing
+#### Host → paso del blob del host
 
-The registers can be used to pass the blobs between host functions. For any function that
-takes a pair of arguments `*_len: u64, *_ptr: u64` this pair is pointing to a region of memory either on the guest or
-the host:
+Los registros pueden ser usados para pasar blobls entre funciones host. Para cualquier función
+que toma un par de argumentos `*_len: u64, *_ptr: u64` este par está apuntando a una región de memoria en el invitado
+o el host:
 
-- If `*_len != u64::MAX` it points to the memory on the guest;
-- If `*_len == u64::MAX` it points to the memory under the register `*_ptr` on the host.
+- Si `*_len != u64::MAX` apunta a la memoria en el invitado;
+- Si `*_len == u64::MAX` apunta a la memoria bajo el registro `*_ptr` en el host.
 
-For example:
-`storage_write(u64::MAX, 0, u64::MAX, 1, 2)` -- insert key-value into storage, where key is read from register 0,
-value is read from register 1, and result is saved to register 2.
+Por ejemplo:
+`storage_write(u64::MAX, 0, u64::MAX, 1, 2)` -- inserta un key-value en el almacenamiento, donde la llave es leída del registro 0,
+el valor es leído del registro 1, y el resultado es guardado en el registro 2.
 
-Note, if some function takes `register_id` then it means this function can copy some data into this register. If
-`register_id == u64::MAX` then the copying does not happen. This allows some micro-optimizations in the future.
+Tenga en cuenta que, si una función toma `register_id` entonces significa que esta función puede copiar algunos datos a este registro. Si
+`register_id == u64::MAX` entonces el copiado no sucede. Esto permite algunas micro-optimizaciones en el futuro.
 
-Note, we allow multiple registers on the host, identified with `u64` number. The guest does not have to use them in
-order and can for instance save some blob in register `5000` and another value in register `1`.
+Otra cosa a tener en cuenta es que tomamos múltiples registros en el host, idenfificados con un número `u64`. El invitado no tiene que usarlos en
+orden y puede, por ejemplo, guardar algún blob en el registro `5000` y otro valor en el registro `1`.
 
-#### Specification
+#### Especificación
 
 ```rust
 read_register(register_id: u64, ptr: u64)
 ```
 
-Writes the entire content from the register `register_id` into the memory of the guest starting with `ptr`.
+Escribe el todo el contenido del registro `register_id` en la memoria del invitado empezando con `ptr`.
 
-###### Panics
+###### Pánicos
 
-- If the content extends outside the memory allocated to the guest. In Wasmer, it returns `MemoryAccessViolation` error message;
-- If `register_id` is pointing to unused register returns `InvalidRegisterId` error message.
+- Si el contenido se extiende por fuera de la memoria alojada para el invitado. En el Wasmer, regresa un mensaje de error `MemoryAccessViolation`;
+- Si `register_id` apunta a un registro no usado regresa un mensaje de error de tipo `InvalidRegisterId`.
 
-###### Undefined Behavior
+###### Comportamiento Indefinido
 
-- If the content of register extends outside the preallocated memory on the host side, or the pointer points to a
-  wrong location this function will overwrite memory that it is not supposed to overwrite causing an undefined behavior.
+- Si el contenido de un registro se extiende por fuera de la memoria pre-alojada en el lado del host, o si el apuntados apunta a
+  la locación equivocada, esta función sobreescribirá la memoria que no se supone que se sobreescriba causando un comportamiento indefinido.
 
 ---
 
@@ -58,9 +58,9 @@ Writes the entire content from the register `register_id` into the memory of the
 register_len(register_id: u64) -> u64
 ```
 
-Returns the size of the blob stored in the given register.
+Regresa el tamaño del blob almacenado en el registro dado.
 
-###### Normal operation
+###### Operación normal
 
-- If register is used, then returns the size, which can potentially be zero;
-- If register is not used, returns `u64::MAX`
+- Si el registro es usado, entonces regresa el tamaño, que puede ser potencialmente cero;
+- Si el registro no es usado, regresa `u64::MAX`
